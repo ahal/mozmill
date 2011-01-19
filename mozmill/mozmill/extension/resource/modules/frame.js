@@ -458,7 +458,7 @@ ConsoleListener.prototype = {
     }
   },
   QueryInterface: function (iid) {
-	if (!iid.equals(Components.interfaces.nsIConsoleListener) && !iid.equals(Components.interfaces.nsISupports)) {
+    if (!iid.equals(Components.interfaces.nsIConsoleListener) && !iid.equals(Components.interfaces.nsISupports)) {
 		throw Components.results.NS_ERROR_NO_INTERFACE;
     }
     return this;
