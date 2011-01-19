@@ -455,7 +455,7 @@ ConsoleListener.prototype = {
     var re = /^\[.*Error:.*(chrome|resource):\/\/.*/i;
     if (msg.match(re)) {
       events.fail(msg);
-    }
+    }  
   },
   QueryInterface: function (iid) {
     if (!iid.equals(Components.interfaces.nsIConsoleListener) && !iid.equals(Components.interfaces.nsISupports)) {
@@ -505,6 +505,7 @@ function Runner (collector, invokedFromIDE) {
   // this.logger = new logging.Logger('Runner');
   var m = {}; Components.utils.import('resource://mozmill/modules/mozmill.js', m);
   this.platform = m.platform;
+  this.consoleListener = new ConsoleListener();
 }
 Runner.prototype.runTestDirectory = function (directory) {
   this.collector.initTestDirectory(directory);
@@ -524,6 +525,7 @@ Runner.prototype.runTestFile = function (filename) {
   this.runTestModule(this.collector.test_modules_by_filename[filename]);
 }
 Runner.prototype.end = function () {
+  this.consoleListener.unregister();
   try {
     events.fireEvent('persist', persisted);
   } catch(e) {
@@ -597,8 +599,6 @@ Runner.prototype.wrapper = function (func, arg) {
 }
 
 Runner.prototype._runTestModule = function (module) {
-  var consoleListener = new ConsoleListener();
-
   if (module.__requirements__ != undefined && module.__force_skip__ == undefined) {
     for each(var req in module.__requirements__) {
       module[req] = this.collector.getModule(req);
@@ -668,8 +668,6 @@ Runner.prototype._runTestModule = function (module) {
     this.wrapper(module.__teardownModule__, module);
     events.endTest(module.__teardownModule__);
   }
-  
-  consoleListener.unregister();
   module.__status__ = 'done';
 }
 Runner.prototype.runTestModule = function (module) {
