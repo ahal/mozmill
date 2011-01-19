@@ -119,6 +119,15 @@ var loadFile = function(path, collector) {
     loader.loadSubScript(uri, module);
   } catch(e) {
     events.fail(e);
+    var obj = {
+      'filename':path,
+      'passed':false,
+      'failed':true,
+      'passes':0,
+      'fails' :1,
+      'name'  :'Unknown Test',
+    };
+    events.fireEvent('endTest', obj);
     Components.utils.reportError(e);
   }
   
@@ -443,7 +452,7 @@ function ConsoleListener() {
 ConsoleListener.prototype = {
   observe: function(aMessage) {
     var msg = aMessage.message;
-    var re = /^\[.*Error:.*/i;
+    var re = /^\[.*Error:.*(chrome|resource):\/\/.*/i;
     if (msg.match(re)) {
       events.fail(msg);
     }
