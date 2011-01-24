@@ -37,7 +37,7 @@
 //
 // ***** END LICENSE BLOCK *****
 
-var EXPORTED_SYMBOLS = ["createInstance"]
+var EXPORTED_SYMBOLS = ["createInstance"];
 
 var EventUtils = {}; Components.utils.import('resource://mozmill/stdlib/EventUtils.js', EventUtils);
 var events = {}; Components.utils.import('resource://mozmill/modules/events.js', events);
@@ -50,10 +50,10 @@ var createInstance = function (elem) {
     case 'menulist':
       return MozMillDropList(elem);
     case 'input':
-      let type = elem.getAttribute('type');
-      if (type == 'checkbox') {
+      var type = elem.getAttribute('type');
+      if (type === 'checkbox') {
         return new MozMillCheckBox(elem);
-      } else if (type == 'radio') {
+      } else if (type === 'radio') {
         return new MozMillRadio(elem);
       }
       break;
@@ -64,7 +64,7 @@ var createInstance = function (elem) {
     default:
   }
   return new MozMillElement(elem);
-}
+};
 
 /**
  * MozMillElement
@@ -102,15 +102,14 @@ function MozMillElement(elem) {
  */
 MozMillElement.prototype.keypress = function(aKey, aModifiers, aExpectedEvent) {
   if (!this.element) {
-    throw new Error("Could not find element " + this.element.getInfo());
-    return false;
+    throw new Error("Could not find element " + this.getInfo());
   }
 
   events.triggerKeyEvent(this.element, 'keypress', aKey, aModifiers, aExpectedEvent);
 
   frame.events.pass({'function':'Controller.keypress()'});
   return true;
-}
+};
 
 /**
  * Synthesize keypress events for each character on the given element
@@ -127,8 +126,7 @@ MozMillElement.prototype.keypress = function(aKey, aModifiers, aExpectedEvent) {
  */
 MozMillController.prototype.type = function (aText, aExpectedEvent) {
   if (!this.element) {
-    throw new Error("could not find element " + this.element.getInfo());
-    return false;
+    throw new Error("could not find element " + this.getInfo());
   }
 
   Array.forEach(aText, function(letter) {
@@ -137,7 +135,7 @@ MozMillController.prototype.type = function (aText, aExpectedEvent) {
 
   frame.events.pass({'function':'Controller.type()'});
   return true;
-}
+};
 
 /**
  * Synthesize a general mouse event on the given element
@@ -175,20 +173,22 @@ MozMillController.prototype.type = function (aText, aExpectedEvent) {
  */
 MozMillElement.prototype.mouseEvent = function(aOffsetX, aOffsetY, aEvent, aExpectedEvent) {
   if (!this.element) {
-    throw new Error(arguments.callee.name + ": could not find element " +
-                    aTarget.getInfo());
+    throw new Error(arguments.callee.name + ": could not find element " + this.getInfo());
   }
 
   // If no offset is given we will use the center of the element to click on.
   var rect = this.element.getBoundingClientRect();
-  if (isNaN(aOffsetX))
+  if (isNaN(aOffsetX)) {
     aOffsetX = rect.width / 2;
-  if (isNaN(aOffsetY))
+  }
+  if (isNaN(aOffsetY)) {
     aOffsetY = rect.height / 2;
+  }
 
   // Scroll element into view otherwise the click will fail
-  if (this.element.scrollIntoView)
+  if (this.element.scrollIntoView) {
     this.element.scrollIntoView();
+  }
 
   if (aExpectedEvent) {
     // The expected event type has to be set
@@ -198,8 +198,7 @@ MozMillElement.prototype.mouseEvent = function(aOffsetX, aOffsetY, aEvent, aExpe
     // If no target has been specified use the specified element
     var target = aExpectedEvent.target ? aExpectedEvent.target.getNode() : this.element;
     if (!target) {
-      throw new Error(arguments.callee.name + ": could not find element " +
-                      aExpectedEvent.target.getInfo());
+      throw new Error(arguments.callee.name + ": could not find element " + aExpectedEvent.target.getInfo());
     }
 
     EventUtils.synthesizeMouseExpectEvent(this.element, aOffsetX, aOffsetY, aEvent,
@@ -210,7 +209,7 @@ MozMillElement.prototype.mouseEvent = function(aOffsetX, aOffsetY, aEvent, aExpe
     EventUtils.synthesizeMouse(this.element, aOffsetX, aOffsetY, aEvent,
                                this.element.ownerDocument.defaultView);
   }
-}
+};
 
 /**
  * Synthesize a mouse click event on the given element
@@ -224,7 +223,7 @@ MozMillElement.prototype.click = function(left, top, expectedEvent) {
   }
 
   frame.events.pass({'function':'controller.click()'});
-}
+};
 
 /**
  * Synthesize a double click on the given element
@@ -234,7 +233,7 @@ MozMillElement.prototype.doubleClick = function(left, top, expectedEvent) {
 
   frame.events.pass({'function':'controller.doubleClick()'});
   return true;
-}
+};
 
 /**
  * Synthesize a mouse down event on the given element
@@ -325,9 +324,13 @@ MozMillElement.prototype.__defineGetter__("waitForEvents", function() {
   return this._waitForEvents;
 });
 
-MozMillController.prototype.waitThenClick = function (timeout, interval) {
+MozMillElement.prototype.waitThenClick = function (timeout, interval) {
   this.waitForElement(timeout, interval);
   this.click();
+};
+
+MozMillElement.prototype.getInfo() = function() {
+
 };
 
 
@@ -339,6 +342,7 @@ MozMillController.prototype.waitThenClick = function (timeout, interval) {
  * Checkbox element, inherits from MozMillElement
  */
 MozMillCheckBox.prototype = new MozMillElement;
+MozMillCheckBox.prototype.parent = MozMillElement.prototype;
 MozMillCheckBox.prototype.constructor = MozMillCheckBox;
 function MozMillCheckBox(elem) {
   this.element = elem;
@@ -347,32 +351,35 @@ function MozMillCheckBox(elem) {
 /**
  * Enable/Disable a checkbox depending on the target state
  */
-MozMillCheckBox.prototype.check = function(el, state) {
+MozMillCheckBox.prototype.check = function(state) {
   var result = false;
-  var element = el.getNode();
 
-  if (!element) {
-    throw new Error("could not find element " + el.getInfo());
+  if (!this.element) {
+    throw new Error("could not find element " + this.element.getInfo());
     return false;
   }
 
   // If we have a XUL element, unwrap its XPCNativeWrapper
-  if (element.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul") {
-    element = utils.unwrapNode(element);
+  if (this.element.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul") {
+    this.element = utils.unwrapNode(this.element);
   }
 
   state = (typeof(state) == "boolean") ? state : false;
-  if (state != element.checked) {
-    this.click(el);
-    this.waitFor(function() {
-      return element.checked == state;
-    }, "Checkbox " + el.getInfo() + " could not be checked/unchecked", 500);
+  if (state != this.element.checked) {
+    this.parent.click.call(this);
+    this.parent.waitFor.call(this, function() {
+      return this.element.checked == state;
+    }, "Checkbox " + this.element.getInfo() + " could not be checked/unchecked", 500);
 
     result = true;
   }
 
-  frame.events.pass({'function':'Controller.check(' + el.getInfo() + ', state: ' + state + ')'});
+  frame.events.pass({'function':'Controller.check(' + this.element.getInfo() + ', state: ' + state + ')'});
   return result;
+};
+
+MozMillCheckBox.prototype.getInfo() = function() {
+
 };
 
 
@@ -384,8 +391,8 @@ MozMillCheckBox.prototype.check = function(el, state) {
  * Radio button inherits from MozMillElement
  */
 MozMillRadio.prototype = new MozMillElement;
-MozMillRadio.prototype.constructor = MozMillRadio;
 MozMillRadio.prototype.parent = MozMillElement.prototype;
+MozMillRadio.prototype.constructor = MozMillRadio;
 function MozMillRadio(elem) {
   MozMillElement
 }
@@ -397,7 +404,6 @@ MozMillRadio.prototype.radio = function()
 {
   if (!this.element) {
     throw new Error("could not find element " + this.element.getInfo());
-    return false;
   }
   
   // If we have a XUL element, unwrap its XPCNativeWrapper
@@ -406,12 +412,16 @@ MozMillRadio.prototype.radio = function()
   }
 
   this.parent.click.call(this);
-  this.waitFor(function() {
+  this.parent.waitFor.call(this, function() {
     return element.selected == true;
   }, "Radio button " + el.getInfo() + " could not be selected", 500);
 
   frame.events.pass({'function':'Controller.radio(' + el.getInfo() + ')'});
   return true;
+};
+
+MozMillRadio.prototype.getInfo() = function() {
+
 };
 
 
@@ -424,7 +434,7 @@ MozMillRadio.prototype.radio = function()
  */
 MozMillDropList.prototype = new MozMillElement;
 MozMillDropList.prototype.parent = MozMillElement.prototype;
-MozMillDropList.prototype = MozMillDropList;
+MozMillDropList.prototype.constructor = MozMillDropList;
 function MozMillDropList(elem) {
   this.element = elem;
 }
@@ -433,7 +443,6 @@ function MozMillDropList(elem) {
 MozMillDropList.prototype.select = function (indx, option, value) {
   if (!this.element){
     throw new Error("Could not find element " + this.element.getInfo());
-    return false;
   }
 
   //if we have a select drop down
@@ -460,9 +469,9 @@ MozMillDropList.prototype.select = function (indx, option, value) {
             value != undefined && entry.value == value) {
           item = entry;
          break;
-       }
-     }
-           }
+        }
+      }
+    }
 
     // Click the item
     try {
@@ -511,7 +520,7 @@ MozMillDropList.prototype.select = function (indx, option, value) {
 
     // Click the item
     try {
-      EventUtils.synthesizeMouse(element, 1, 1, {}, ownerDoc.defaultView);
+      EventUtils.synthesizeMouse(this.element, 1, 1, {}, ownerDoc.defaultView);
       this.sleep(0);
 
       // Scroll down until item is visible
@@ -525,7 +534,6 @@ MozMillDropList.prototype.select = function (indx, option, value) {
       }
 
       EventUtils.synthesizeMouse(item, 1, 1, {}, ownerDoc.defaultView);
-      this.sleep(0);
 
       frame.events.pass({'function':'Controller.select()'});
       return true;
@@ -534,5 +542,9 @@ MozMillDropList.prototype.select = function (indx, option, value) {
       return false;
     }
   }
+};
+
+MozMillDropList.prototype.getInfo() = function() {
+
 };
 
