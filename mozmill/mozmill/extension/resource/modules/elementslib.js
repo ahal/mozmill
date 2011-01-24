@@ -41,6 +41,7 @@ var EXPORTED_SYMBOLS = ["Elem", "ID", "Link", "XPath", "Selector", "Name", "Anon
                        ];
 
 var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
+var mozElem = {}; Components.utils.import('resource://mozmill/modules/mozelement.js', mozElem);
 var strings = {}; Components.utils.import('resource://mozmill/stdlib/strings.js', strings);
 var arrays = {}; Components.utils.import('resource://mozmill/stdlib/arrays.js', arrays);
 var json2 = {}; Components.utils.import('resource://mozmill/stdlib/json2.js', json2);
@@ -91,7 +92,6 @@ var smartSplit = function (str) {
   }
   return split;
 }
-
 
 var ElemBase = function(){
   this.isElement = true;
@@ -165,7 +165,7 @@ var ID = function(_document, nodeID) {
   }
   this._view = _document.defaultView;
   this.nodeID = nodeID;
-  return this;
+  return mozElem.createInstance(this.getNode());
 }
 ID.prototype = new utils.Copy(ElemBase.prototype);
 ID.prototype.getInfo = function () {
