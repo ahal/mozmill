@@ -421,19 +421,11 @@ MozMillController.prototype.__defineGetter__("menus", function() {
   return new MenuTree(this.window, menubar);
 });
 
-MozMillController.prototype.waitForImage = function (elem, timeout, interval) {
-  this.waitFor(function() {
-    return elem.getNode().complete == true;
-  }, "timeout exceeded for waitForImage " + elem.getInfo(), timeout, interval);
-
-  frame.events.pass({'function':'Controller.waitForImage()'});
-}
-
-MozMillController.prototype.fireEvent = function (name, obj) {
-  if (name == "userShutdown") {
+MozMillController.prototype.fireEvent = function (eventName, obj) {
+  if (eventName == "userShutdown") {
     frame.events.toggleUserShutdown();
   }
-  frame.events.fireEvent(name, obj);
+  frame.events.fireEvent(eventName, obj);
 }
 
 MozMillController.prototype.startUserShutdown = function (timeout, restart) {

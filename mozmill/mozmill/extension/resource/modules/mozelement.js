@@ -48,7 +48,7 @@ var createInstance = function (elem) {
   switch(elem.localName.lower()) {
     case 'select':
     case 'menulist':
-      return MozMillDropList(elem);
+      return new MozMillDropList(elem);
     case 'input':
       var type = elem.getAttribute('type');
       if (type === 'checkbox') {
@@ -305,7 +305,7 @@ MozMillElement.prototype.waitFor = function(callback, message, timeout,
 MozMillElement.prototype.waitForElement = function(timeout, interval) {
   this.waitFor(function() {
     return this.element.exists();
-  }, "Timeout exceeded for waitForElement " + this.element.getInfo(), timeout, interval);
+  }, "Timeout exceeded for waitForElement " + this.getInfo(), timeout, interval);
 
   frame.events.pass({'function':'Controller.waitForElement()'});
 };
@@ -313,10 +313,18 @@ MozMillElement.prototype.waitForElement = function(timeout, interval) {
 MozMillElement.prototype.waitForElementNotPresent = function(timeout, interval) {
   this.waitFor(function() {
     return !this.element.exists();
-  }, "Timeout exceeded for waitForElementNotPresent " + this.element.getInfo(), timeout, interval);
+  }, "Timeout exceeded for waitForElementNotPresent " + this.getInfo(), timeout, interval);
 
   frame.events.pass({'function':'Controller.waitForElementNotPresent()'});
 };
+
+MozMillElement.prototype.waitForImage = function (timeout, interval) {
+  this.waitFor(function() {
+    return this.element.complete == true;
+  }, "timeout exceeded for waitForImage " + this.getInfo(), timeout, interval);
+
+  frame.events.pass({'function':'Controller.waitForImage()'});
+}
 
 MozMillElement.prototype.__defineGetter__("waitForEvents", function() {
   if (this._waitForEvents == undefined)
@@ -329,7 +337,7 @@ MozMillElement.prototype.waitThenClick = function (timeout, interval) {
   this.click();
 };
 
-MozMillElement.prototype.getInfo() = function() {
+MozMillElement.prototype.getInfo = function() {
 
 };
 
@@ -341,7 +349,7 @@ MozMillElement.prototype.getInfo() = function() {
  * MozMillCheckBox
  * Checkbox element, inherits from MozMillElement
  */
-MozMillCheckBox.prototype = new MozMillElement;
+MozMillCheckBox.prototype = new MozMillElement();
 MozMillCheckBox.prototype.parent = MozMillElement.prototype;
 MozMillCheckBox.prototype.constructor = MozMillCheckBox;
 function MozMillCheckBox(elem) {
@@ -355,7 +363,7 @@ MozMillCheckBox.prototype.check = function(state) {
   var result = false;
 
   if (!this.element) {
-    throw new Error("could not find element " + this.element.getInfo());
+    throw new Error("could not find element " + this.getInfo());
     return false;
   }
 
@@ -369,16 +377,16 @@ MozMillCheckBox.prototype.check = function(state) {
     this.parent.click.call(this);
     this.parent.waitFor.call(this, function() {
       return this.element.checked == state;
-    }, "Checkbox " + this.element.getInfo() + " could not be checked/unchecked", 500);
+    }, "Checkbox " + this.getInfo() + " could not be checked/unchecked", 500);
 
     result = true;
   }
 
-  frame.events.pass({'function':'Controller.check(' + this.element.getInfo() + ', state: ' + state + ')'});
+  frame.events.pass({'function':'Controller.check(' + this.getInfo() + ', state: ' + state + ')'});
   return result;
 };
 
-MozMillCheckBox.prototype.getInfo() = function() {
+MozMillCheckBox.prototype.getInfo = function() {
 
 };
 
@@ -390,7 +398,7 @@ MozMillCheckBox.prototype.getInfo() = function() {
  * MozMillRadio
  * Radio button inherits from MozMillElement
  */
-MozMillRadio.prototype = new MozMillElement;
+MozMillRadio.prototype = new MozMillElement();
 MozMillRadio.prototype.parent = MozMillElement.prototype;
 MozMillRadio.prototype.constructor = MozMillRadio;
 function MozMillRadio(elem) {
@@ -403,7 +411,7 @@ function MozMillRadio(elem) {
 MozMillRadio.prototype.radio = function()
 {
   if (!this.element) {
-    throw new Error("could not find element " + this.element.getInfo());
+    throw new Error("could not find element " + this.getInfo());
   }
   
   // If we have a XUL element, unwrap its XPCNativeWrapper
@@ -420,7 +428,7 @@ MozMillRadio.prototype.radio = function()
   return true;
 };
 
-MozMillRadio.prototype.getInfo() = function() {
+MozMillRadio.prototype.getInfo = function() {
 
 };
 
@@ -432,7 +440,7 @@ MozMillRadio.prototype.getInfo() = function() {
  * MozMillDropList
  * DropList inherits from MozMillElement
  */
-MozMillDropList.prototype = new MozMillElement;
+MozMillDropList.prototype = new MozMillElement();
 MozMillDropList.prototype.parent = MozMillElement.prototype;
 MozMillDropList.prototype.constructor = MozMillDropList;
 function MozMillDropList(elem) {
@@ -442,7 +450,7 @@ function MozMillDropList(elem) {
 /* Select the specified option and trigger the relevant events of the element.*/
 MozMillDropList.prototype.select = function (indx, option, value) {
   if (!this.element){
-    throw new Error("Could not find element " + this.element.getInfo());
+    throw new Error("Could not find element " + this.getInfo());
   }
 
   //if we have a select drop down
@@ -483,7 +491,7 @@ MozMillDropList.prototype.select = function (indx, option, value) {
       frame.events.pass({'function':'Controller.select()'});
       return true;
     } catch (ex) {
-      throw new Error("No item selected for element " + element.getInfo());
+      throw new Error("No item selected for element " + this.getInfo());
       return false;
     }
   }
@@ -521,7 +529,6 @@ MozMillDropList.prototype.select = function (indx, option, value) {
     // Click the item
     try {
       EventUtils.synthesizeMouse(this.element, 1, 1, {}, ownerDoc.defaultView);
-      this.sleep(0);
 
       // Scroll down until item is visible
       for (var i = s = this.element.selectedIndex; i <= this.element.itemCount + s; ++i) {
@@ -538,13 +545,13 @@ MozMillDropList.prototype.select = function (indx, option, value) {
       frame.events.pass({'function':'Controller.select()'});
       return true;
     } catch (ex) {
-      throw new Error('No item selected for element ' + this.element.getInfo());
+      throw new Error('No item selected for element ' + this.getInfo());
       return false;
     }
   }
 };
 
-MozMillDropList.prototype.getInfo() = function() {
+MozMillDropList.prototype.getInfo = function() {
 
 };
 
