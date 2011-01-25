@@ -124,7 +124,7 @@ MozMillElement.prototype.keypress = function(aKey, aModifiers, aExpectedEvent) {
  *                               [optional - default: current element]
  *                  type       - Type of the expected key event
  */
-MozMillController.prototype.type = function (aText, aExpectedEvent) {
+MozMillElement.prototype.type = function (aText, aExpectedEvent) {
   if (!this.element) {
     throw new Error("could not find element " + this.getInfo());
   }
