@@ -44,6 +44,8 @@ var events = {}; Components.utils.import('resource://mozmill/modules/events.js',
 var frame = {}; Components.utils.import('resource://mozmill/modules/frame.js', frame);
 var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
 
+var waitFor = utils.waitFor;
+
 var createInstance = function (elem) {
   switch(elem.localName.toLowerCase()) {
     case 'select':
@@ -81,8 +83,6 @@ MozMillElement.prototype.getNode = function() {
 /**
  * Synthesize a keypress event on the given element
  *
- * @param {ElemBase} aTarget
- *        Element which will receive the keypress event
  * @param {string} aKey
  *        Key to use for synthesizing the keypress event. It can be a simple
  *        character like "k" or a string like "VK_ESCAPE" for command keys
@@ -342,7 +342,7 @@ MozMillElement.prototype.waitThenClick = function (timeout, interval) {
 };
 
 MozMillElement.prototype.getInfo = function() {
-  return this.element.localName;
+  return "getInfo()";
 };
 
 
@@ -390,11 +390,6 @@ MozMillCheckBox.prototype.check = function(state) {
   return result;
 };
 
-MozMillCheckBox.prototype.getInfo = function() {
-
-};
-
-
 //----------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -406,13 +401,13 @@ MozMillRadio.prototype = new MozMillElement();
 MozMillRadio.prototype.parent = MozMillElement.prototype;
 MozMillRadio.prototype.constructor = MozMillRadio;
 function MozMillRadio(elem) {
-  MozMillElement
+  this.element = elem;
 }
 
 /**
  * Select the given radio button
  */
-MozMillRadio.prototype.radio = function()
+MozMillRadio.prototype.select = function()
 {
   if (!this.element) {
     throw new Error("could not find element " + this.getInfo());
@@ -424,18 +419,14 @@ MozMillRadio.prototype.radio = function()
   }
 
   this.parent.click.call(this);
-  this.parent.waitFor.call(this, function() {
-    return element.selected == true;
-  }, "Radio button " + el.getInfo() + " could not be selected", 500);
+  var element = this.element;
+  utils.waitFor(function(el) {
+    return el.selected == true;
+  }, "Radio button " + this.getInfo() + " could not be selected", 500, undefined, this.element);
 
-  frame.events.pass({'function':'Controller.radio(' + el.getInfo() + ')'});
+  frame.events.pass({'function':'Controller.radio(' + this.getInfo() + ')'});
   return true;
 };
-
-MozMillRadio.prototype.getInfo = function() {
-
-};
-
 
 //----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -451,7 +442,7 @@ function MozMillDropList(elem) {
   this.element = elem;
 }
 
-/* Select the specified option and trigger the relevant events of the element.*/
+/* Select the specified option and trigger the relevant events of the element */
 MozMillDropList.prototype.select = function (indx, option, value) {
   if (!this.element){
     throw new Error("Could not find element " + this.getInfo());
@@ -554,8 +545,3 @@ MozMillDropList.prototype.select = function (indx, option, value) {
     }
   }
 };
-
-MozMillDropList.prototype.getInfo = function() {
-
-};
-

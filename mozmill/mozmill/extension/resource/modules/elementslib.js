@@ -93,14 +93,7 @@ var smartSplit = function (str) {
   return split;
 }
 
-var ElemBase = function(){
-  this.isElement = true;
-}
-ElemBase.prototype.exists = function() {
-  if (this.getNode()){ return true; }
-  else{ return false; }
-}
-ElemBase.prototype.nodeSearch = function(doc, func, string) {
+function nodeSearch(doc, func, string) {
     var win = doc.defaultView;
     var e = null;
     var element = null;
@@ -129,166 +122,123 @@ ElemBase.prototype.nodeSearch = function(doc, func, string) {
     return e;
 }
 
-var Elem = function(node) {
-  this.node = node;
-  return this;
+function Elem(node) {
+  return mozElem.createInstance(node);
 }
-Elem.prototype = new utils.Copy(ElemBase.prototype);
-Elem.prototype.getNode = function () { return this.node; };
-Elem.prototype.getInfo = function () { return 'Elem instance.'; };
 
 
-var Selector = function(_document, selector) {
+function Selector(_document, selector) {
   if (_document == undefined || selector == undefined) {
     throw new Error('Selector constructor did not recieve enough arguments.');
   }
   this._view = _document.defaultView;
   this.selector = selector;
-  return this;
-}
-Selector.prototype = new utils.Copy(ElemBase.prototype);
-Selector.prototype.getInfo = function () {
-  return "Selector: " + this.selector;
-}
-Selector.prototype.getNodeForDocument = function (s) {
-  return this.document.querySelectorAll(s);
-}
-Selector.prototype.getNode = function (index) {
-  var nodes = this.nodeSearch(this._view.document, this.getNodeForDocument, this.selector);
-  return nodes ? nodes[index || 0] : null;
+  this.getNodeForDocument = function (s) {
+    return this.document.querySelectorAll(s);
+  };
+  var nodes = nodeSearch(this._view.document, this.getNodeForDocument, this.selector);
+  return mozElem.createInstance(nodes ? nodes[index || 0] : null);
 }
 
-var ID = function(_document, nodeID) {
+function ID(_document, nodeID) {
   if (_document == undefined || nodeID == undefined) {
     throw new Error('ID constructor did not recieve enough arguments.');
   }
-  this._view = _document.defaultView;
-  this.nodeID = nodeID;
-  return mozElem.createInstance(_document.getElementById(this.nodeID));
-}
-ID.prototype = new utils.Copy(ElemBase.prototype);
-ID.prototype.getInfo = function () {
-  return "ID: " + this.nodeID;
-}
-ID.prototype.getNodeForDocument = function (s) {
-  return this.document.getElementById(s);
-}
-ID.prototype.getNode = function () {
-  return this.nodeSearch(this._view.document, this.getNodeForDocument, this.nodeID);
+  return mozElem.createInstance(_document.getElementById(nodeID));
 }
 
-var Link = function(_document, linkName) {
+function Link(_document, linkName) {
   if (_document == undefined || linkName == undefined) {
     throw new Error('Link constructor did not recieve enough arguments.');
   }
   this._view = _document.defaultView;
   this.linkName = linkName;
-  return this;
-}
-Link.prototype = new utils.Copy(ElemBase.prototype);
-Link.prototype.getInfo = function () {
-  return "Link: " + this.linkName;
-}
-Link.prototype.getNodeForDocument = function (linkName) {
-  var getText = function(el){
-    var text = "";
-    if (el.nodeType == 3){ //textNode
-      if (el.data != undefined){
-        text = el.data;
-      }
-      else{ text = el.innerHTML; }
-      text = text.replace(/n|r|t/g, " ");
-    }
-    if (el.nodeType == 1){ //elementNode
-        for (var i = 0; i < el.childNodes.length; i++) {
-            var child = el.childNodes.item(i);
-            text += getText(child);
+  
+  this.getNodeForDocument = function (linkName) {
+    var getText = function(el){
+      var text = "";
+      if (el.nodeType == 3){ //textNode
+        if (el.data != undefined){
+          text = el.data;
+        } else {
+          text = el.innerHTML;
         }
-        if (el.tagName == "P" || el.tagName == "BR" || 
-          el.tagName == "HR" || el.tagName == "DIV") {
+      text = text.replace(/n|r|t/g, " ");
+      }
+      if (el.nodeType == 1){ //elementNode
+        for (var i = 0; i < el.childNodes.length; i++) {
+          var child = el.childNodes.item(i);
+          text += getText(child);
+        }
+        if (el.tagName == "P" || el.tagName == "BR" || el.tagName == "HR" || el.tagName == "DIV") {
           text += "n";
         }
-    }
-    return text;
-  }
+      }
+      return text;
+    };
   
-  //sometimes the windows won't have this function
-  try { var links = this.document.getElementsByTagName('a'); }
-  catch(err){ // ADD LOG LINE mresults.write('Error: '+ err, 'lightred'); 
-  }
-  for (var i = 0; i < links.length; i++) {
-    var el = links[i];
-    //if (getText(el).indexOf(this.linkName) != -1) {
-    if (el.innerHTML.indexOf(linkName) != -1){
-      return el;
+    //sometimes the windows won't have this function
+    try { 
+      var links = this.document.getElementsByTagName('a'); }
+    catch(err){ // ADD LOG LINE mresults.write('Error: '+ err, 'lightred'); 
     }
-  }
-  return null;
+    for (var i = 0; i < links.length; i++) {
+      var el = links[i];
+      //if (getText(el).indexOf(this.linkName) != -1) {
+      if (el.innerHTML.indexOf(linkName) != -1){
+        return el;
+      }
+    }
+    return null;
+  };
+  
+  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.linkName));
 }
 
-Link.prototype.getNode = function () {
-  return this.nodeSearch(this._view.document, this.getNodeForDocument, this.linkName);
-}
 
-var XPath = function(_document, expr) {
+function XPath(_document, expr) {
   if (_document == undefined || expr == undefined) {
     throw new Error('XPath constructor did not recieve enough arguments.');
   }
   this._view = _document.defaultView;
   this.expr = expr;
-  return this;
-}
-XPath.prototype = new utils.Copy(ElemBase.prototype);
-XPath.prototype.getInfo = function () {
-  return "XPath: " + this.expr;
-}
-XPath.prototype.getNodeForDocument = function (s) {
-  var aNode = this.document;
-  var aExpr = s;
-  var xpe = null;
+  
+  this.getNodeForDocument = function (s) {
+    var aNode = this.document;
+    var aExpr = s;
+    var xpe = null;
 
-  if (this.document.defaultView == null) {
-    xpe = new getMethodInWindows('XPathEvaluator')();
-  } else {
-    xpe = new this.document.defaultView.XPathEvaluator();
-  }
-  var nsResolver = xpe.createNSResolver(aNode.ownerDocument == null ?
-    aNode.documentElement : aNode.ownerDocument.documentElement);
-  var result = xpe.evaluate(aExpr, aNode, nsResolver, 0, null);
-  var found = [];
-  var res;
-  while (res = result.iterateNext())
-    found.push(res);
-  return found[0];
+    if (this.document.defaultView == null) {
+      xpe = new getMethodInWindows('XPathEvaluator')();
+    } else {
+      xpe = new this.document.defaultView.XPathEvaluator();
+    }
+    var nsResolver = xpe.createNSResolver(aNode.ownerDocument == null ? aNode.documentElement : aNode.ownerDocument.documentElement);
+    var result = xpe.evaluate(aExpr, aNode, nsResolver, 0, null);
+    var found = [];
+    var res;
+    while (res = result.iterateNext())
+      found.push(res);
+    return found[0];
+  };
+  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.expr));
 }
 
-XPath.prototype.getNode = function () {
-  return this.nodeSearch(this._view.document, this.getNodeForDocument, this.expr);
-}
-
-var Name = function(_document, nName) {
+function Name(_document, nName) {
   if (_document == undefined || nName == undefined) {
     throw new Error('Name constructor did not recieve enough arguments.');
   }
   this._view = _document.defaultView;
   this.nName = nName;
-  return this;
-}
-Name.prototype = new utils.Copy(ElemBase.prototype);
-Name.prototype.getInfo = function () {
-  return "Name: " + this.nName;
-}
-Name.prototype.getNodeForDocument = function (s) {
-  try{
-    var els = this.document.getElementsByName(s);
-    if (els.length > 0) { return els[0]; }
-  }
-  catch(err){};
-  return null;
-}
-
-Name.prototype.getNode = function () {
-  return this.nodeSearch(this._view.document, this.getNodeForDocument, this.nName);
+  this.getNodeForDocument = function (s) {
+    try{
+      var els = this.document.getElementsByName(s);
+      if (els.length > 0) { return els[0]; }
+    }
+    catch(err){};
+    return null;
+  };
+  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.nName));
 }
 
 
@@ -299,7 +249,6 @@ function Lookup (_document, expression) {
   this._view = _document.defaultView;
   this.expression = expression;
 }
-Lookup.prototype = new utils.Copy(ElemBase.prototype);
 var _returnResult = function (results) {
   if (results.length == 0) {
     return null
