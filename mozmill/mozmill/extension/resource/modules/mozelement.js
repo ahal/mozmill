@@ -45,7 +45,7 @@ var frame = {}; Components.utils.import('resource://mozmill/modules/frame.js', f
 var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
 
 var createInstance = function (elem) {
-  switch(elem.localName.lower()) {
+  switch(elem.localName.toLowerCase()) {
     case 'select':
     case 'menulist':
       return new MozMillDropList(elem);
@@ -72,6 +72,10 @@ var createInstance = function (elem) {
  */
 function MozMillElement(elem) {
   this.element = elem;
+} 
+
+MozMillElement.prototype.getNode = function() {
+  return this.element;
 }
 
 /**
@@ -129,9 +133,9 @@ MozMillElement.prototype.type = function (aText, aExpectedEvent) {
     throw new Error("could not find element " + this.getInfo());
   }
 
-  Array.forEach(aText, function(letter) {
+  for each (letter in aText) {
     events.triggerKeyEvent(this.element, 'keypress', letter, {}, aExpectedEvent);
-  });
+  }
 
   frame.events.pass({'function':'Controller.type()'});
   return true;
@@ -338,7 +342,7 @@ MozMillElement.prototype.waitThenClick = function (timeout, interval) {
 };
 
 MozMillElement.prototype.getInfo = function() {
-
+  return this.element.localName;
 };
 
 

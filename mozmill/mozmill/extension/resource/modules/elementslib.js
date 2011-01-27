@@ -37,7 +37,7 @@
 // ***** END LICENSE BLOCK *****
 
 var EXPORTED_SYMBOLS = ["Elem", "ID", "Link", "XPath", "Selector", "Name", "Anon", "AnonXPath",
-                        "Lookup", "_byID", "_byName", "_byAttrib", "_byAnonAttrib",
+                        "Lookup", "Get", "_byID", "_byName", "_byAttrib", "_byAnonAttrib",
                        ];
 
 var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
@@ -158,14 +158,13 @@ Selector.prototype.getNode = function (index) {
   return nodes ? nodes[index || 0] : null;
 }
 
-
 var ID = function(_document, nodeID) {
   if (_document == undefined || nodeID == undefined) {
     throw new Error('ID constructor did not recieve enough arguments.');
   }
   this._view = _document.defaultView;
   this.nodeID = nodeID;
-  return mozElem.createInstance(this.getNode());
+  return mozElem.createInstance(_document.getElementById(this.nodeID));
 }
 ID.prototype = new utils.Copy(ElemBase.prototype);
 ID.prototype.getInfo = function () {

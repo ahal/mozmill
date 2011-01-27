@@ -321,61 +321,6 @@ var MozMillController = function (window) {
 
 MozMillController.prototype.sleep = utils.sleep;
 
-/**
- * Synthesize a keypress event on the given element
- *
- * @param {ElemBase} aTarget
- *        Element which will receive the keypress event
- * @param {string} aKey
- *        Key to use for synthesizing the keypress event. It can be a simple
- *        character like "k" or a string like "VK_ESCAPE" for command keys
- * @param {object} aModifiers
- *        Information about the modifier keys to send
- *        Elements: accelKey   - Hold down the accelerator key (ctrl/meta)
- *                               [optional - default: false]
- *                  altKey     - Hold down the alt key
- *                              [optional - default: false]
- *                  ctrlKey    - Hold down the ctrl key
- *                               [optional - default: false]
- *                  metaKey    - Hold down the meta key (command key on Mac)
- *                               [optional - default: false]
- *                  shiftKey   - Hold down the shift key
- *                               [optional - default: false]
- * @param {object} aExpectedEvent
- *        Information about the expected event to occur
- *        Elements: target     - Element which should receive the event
- *                               [optional - default: current element]
- *                  type       - Type of the expected key event
- */
-MozMillElement.prototype.keypress = function(aKey, aModifiers, aExpectedEvent) {
-  events.triggerKeyEvent(this.window, 'keypress', aKey, aModifiers, aExpectedEvent);
-
-  frame.events.pass({'function':'Controller.keypress()'});
-  return true;
-}
-
-/**
- * Synthesize keypress events for each character on the given element
- *
- * @param {ElemBase} aTarget
- *        Element which will receive the type event
- * @param {string} aText
- *        The text to send as single keypress events
- * @param {object} aExpectedEvent
- *        Information about the expected event to occur
- *        Elements: target     - Element which should receive the event
- *                               [optional - default: current element]
- *                  type       - Type of the expected key event
- */
-MozMillController.prototype.type = function (aText, aExpectedEvent) {
-  Array.forEach(aText, function(letter) {
-    events.triggerKeyEvent(this.window, 'keypress', letter, {}, aExpectedEvent);
-  });
-
-  frame.events.pass({'function':'Controller.type()'});
-  return true;
-}
-
 // Open the specified url in the current tab
 MozMillController.prototype.open = function(url)
 {
@@ -393,13 +338,42 @@ MozMillController.prototype.open = function(url)
   frame.events.pass({'function':'Controller.open()'});
 }
 
-MozMillElement.prototype.waitForEval = function(expression, timeout, interval, subject) {
+MozMillController.prototype.waitFor = function(callback, message, timeout,
+                                               interval, thisObject) {
+  utils.waitFor(callback, message, timeout, interval, thisObject);
+
+  frame.events.pass({'function':'controller.waitFor()'});
+}
+
+MozMillController.prototype.waitForEval = function(expression, timeout, interval, subject) {
   waitFor(function() {
     return eval(expression);
   }, "controller.waitForEval: Timeout exceeded for '" + expression + "'", timeout, interval);
 
   frame.events.pass({'function':'controller.waitForEval()'});
 }
+
+MozMillController.prototype.waitForElement = function(elem, timeout, interval) {
+  this.waitFor(function() {
+    return elem.exists();
+  }, "Timeout exceeded for waitForElement " + elem.getInfo(), timeout, interval);
+
+  frame.events.pass({'function':'Controller.waitForElement()'});
+}
+
+MozMillController.prototype.waitForElementNotPresent = function(elem, timeout, interval) {
+  this.waitFor(function() {
+    return !elem.exists();
+  }, "Timeout exceeded for waitForElementNotPresent " + elem.getInfo(), timeout, interval);
+
+  frame.events.pass({'function':'Controller.waitForElementNotPresent()'});
+}
+
+MozMillController.prototype.__defineGetter__("waitForEvents", function() {
+  if (this._waitForEvents == undefined)
+    this._waitForEvents = new waitForEvents();
+  return this._waitForEvents;
+});
 
 /**
  * Wrapper function to create a new instance of a menu
@@ -434,11 +408,11 @@ MozMillController.prototype.waitThenClick = function (elem, timeout, interval) {
   this.click(elem);
 }
 
-MozMillController.prototype.fireEvent = function (eventName, obj) {
-  if (eventName == "userShutdown") {
+MozMillController.prototype.fireEvent = function (name, obj) {
+  if (name == "userShutdown") {
     frame.events.toggleUserShutdown();
   }
-  frame.events.fireEvent(eventName, obj);
+  frame.events.fireEvent(name, obj);
 }
 
 MozMillController.prototype.startUserShutdown = function (timeout, restart) {
