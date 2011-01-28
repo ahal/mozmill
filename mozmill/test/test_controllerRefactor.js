@@ -19,11 +19,11 @@ var testFoo = function(){
   button.click();
   controller.sleep(1000);
   
-  var radio = elementslib.ID(controller.tabs.activeTab, "www");
+  //var radio = elementslib.ID(controller.tabs.activeTab, "www");
   button = elementslib.XPath(controller.tabs.activeTab, "/html/body/div/table/tbody/tr/td/table/tbody/tr/td[2]/table/tbody/tr[2]/td/input[7]");
 
-  radio.select();
-  controller.sleep(1000);
+  //radio.select();
+  //controller.sleep(1000);
   
   button.keypress("VK_ENTER");
   controller.sleep(1000);
