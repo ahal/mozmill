@@ -357,6 +357,7 @@ MozMillCheckBox.prototype = new MozMillElement();
 MozMillCheckBox.prototype.parent = MozMillElement.prototype;
 MozMillCheckBox.prototype.constructor = MozMillCheckBox;
 function MozMillCheckBox(elem) {
+  this.parent.constructor.call(this, elem);
   this.element = elem;
 }
 
@@ -379,8 +380,9 @@ MozMillCheckBox.prototype.check = function(state) {
   state = (typeof(state) == "boolean") ? state : false;
   if (state != this.element.checked) {
     this.parent.click.call(this);
-    this.parent.waitFor.call(this, function() {
-      return this.element.checked == state;
+    var element = this.element;
+    utils.waitFor(function() {
+      return element.checked == state;
     }, "Checkbox " + this.getInfo() + " could not be checked/unchecked", 500);
 
     result = true;
@@ -401,6 +403,7 @@ MozMillRadio.prototype = new MozMillElement();
 MozMillRadio.prototype.parent = MozMillElement.prototype;
 MozMillRadio.prototype.constructor = MozMillRadio;
 function MozMillRadio(elem) {
+  this.parent.constructor.call(this, elem);
   this.element = elem;
 }
 
@@ -419,10 +422,13 @@ MozMillRadio.prototype.select = function()
   }
 
   this.parent.click.call(this);
+  
+  utils.sleep(5000);
+  
   var element = this.element;
-  utils.waitFor(function(el) {
-    return el.selected == true;
-  }, "Radio button " + this.getInfo() + " could not be selected", 500, undefined, this.element);
+  utils.waitFor(function() {
+    return element.selected == true;
+  }, "Radio button " + this.getInfo() + " could not be selected", 500);
 
   frame.events.pass({'function':'Controller.radio(' + this.getInfo() + ')'});
   return true;
