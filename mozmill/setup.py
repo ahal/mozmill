@@ -62,9 +62,12 @@ setup(name=PACKAGE_NAME,
           [mozmill.event_handlers]
           logging = mozmill.logger:LoggerListener
           report = mozmill.report:Report
+          callbacks = mozmill.python_callbacks:PythonCallbacks
         """,
       platforms =['Any'],
-      install_requires = ['jsbridge == 3.0a', 'mozrunner == 3.0a', 'ManifestDestiny >= 0.1'],
+      install_requires = ['jsbridge == 3.0a',
+                          'mozrunner == 3.0a',
+                          'ManifestDestiny == 0.2.2'],
       classifiers=['Development Status :: 4 - Beta',
                    'Environment :: Console',
                    'Intended Audience :: Developers',

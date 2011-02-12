@@ -36,7 +36,7 @@
 // ***** END LICENSE BLOCK *****
 
 var EXPORTED_SYMBOLS = ['loadFile','register_function','Collector','Runner','events', 
-                        'jsbridge', 'runTestDirectory', 'runTestFile', 'log', 'getThread',
+                        'jsbridge', 'runTestFile', 'log', 'getThread',
                         'timers', 'persisted'];
 
 var httpd = {};   Components.utils.import('resource://mozmill/stdlib/httpd.js', httpd);
@@ -59,8 +59,6 @@ var uuidgen = Components.classes["@mozilla.org/uuid-generator;1"]
 
 var backstage = this;
 
-var registeredFunctions = {};
-
 var persisted = {};
 
 arrayRemove = function(array, from, to) {
@@ -70,6 +68,7 @@ arrayRemove = function(array, from, to) {
 };
 
 mozmill = undefined; elementslib = undefined;
+
 var loadTestResources = function () {
   if (mozmill == undefined) {
     mozmill = {};
@@ -88,7 +87,6 @@ var loadFile = function(path, collector) {
   var uri = ios.newFileURI(file).spec;
 
   var module = {};  
-  module.registeredFunctions = registeredFunctions;
   module.collector = collector
   loadTestResources();
   module.mozmill = mozmill;
@@ -97,6 +95,8 @@ var loadFile = function(path, collector) {
   module.Cc = Components.classes;
   module.Ci = Components.interfaces;
   module.Cu = Components.utils;
+  module.log = log;
+
   module.require = function (mod) {
     var loader = new securableModule.Loader({
       rootPaths: [ios.newFileURI(file.parent).spec],
@@ -106,7 +106,8 @@ var loadFile = function(path, collector) {
                   persisted: persisted,
                   Cc: Components.classes,
                   Ci: Components.interfaces,
-                  Cu: Components.utils }
+                  Cu: Components.utils,
+                  log: log }
     });
     return loader.require(mod);
   }
@@ -134,10 +135,6 @@ var loadFile = function(path, collector) {
   module.__file__ = path;
   module.__uri__ = uri;
   return module;
-}
-
-function registerFunction (name, func) {
-  registeredFunctions[name] = func;
 }
 
 function stateChangeBase (possibilties, restrictions, target, cmeta, v) {
@@ -254,9 +251,6 @@ events.skip = function (reason) {
   events.fireEvent('skip', reason);
 }
 events.fireEvent = function (name, obj) {
-  if (events.currentTest && name == "firePythonCallback" && events.currentTest.__invokedFromIDE__) {
-    throw new Error("tests that use firePythonCallback cannot be run from the IDE\n");
-  }
   if (this.listeners[name]) {
     for (var i in this.listeners[name]) {
       this.listeners[name][i](obj);
@@ -334,8 +328,10 @@ Collector.prototype.startHttpd = function () {
   }
 }
 Collector.prototype.stopHttpd = function () {
-  this.httpd.stop()
-  this.httpd = null;
+  if (this.httpd) {
+    this.httpd.stop(function(){});  // Callback needed to pause execution until the server has been properly shutdown
+    this.httpd = null;
+  }
 }
 Collector.prototype.addHttpResource = function (directory, ns) {
   if (!this.httpd) {
@@ -394,29 +390,6 @@ Collector.prototype.initTestModule = function (filename) {
   return test_module;
 }
 
-Collector.prototype.initTestDirectory = function (directory) {
-  var r = this;
-  function recursiveModuleLoader(dfile) {
-    r.loaded_directories.push(directory);
-    var dfiles = os.listDirectory(dfile);
-    for (var i in dfiles) {
-      var f = dfiles[i];
-      if ( f.isDirectory() && 
-           !withs.startsWith(f.leafName, '.') && 
-           withs.startsWith(f.leafName, "test") &&
-           !arrays.inArray(r.loaded_directories, f.path) ) {
-        recursiveModuleLoader(os.getFileForPath(f.path));
-      } else if ( withs.startsWith(f.leafName, "test") && 
-                  withs.endsWith(f.leafName, ".js")    &&
-                  !arrays.inArray(r.test_modules_by_filename, f.path) ) {
-        r.initTestModule(f.path);
-      }
-      r.testing.push(f.path);
-    }
-  }
-  recursiveModuleLoader(os.getFileForPath(directory));
-}
-  
 // Observer which gets notified when the application quits
 function AppQuitObserver() {
   this.register();
@@ -447,16 +420,7 @@ function Runner (collector, invokedFromIDE) {
   var m = {}; Components.utils.import('resource://mozmill/modules/mozmill.js', m);
   this.platform = m.platform;
 }
-Runner.prototype.runTestDirectory = function (directory) {
-  this.collector.initTestDirectory(directory);
-  
-  for (var i in this.collector.test_modules_by_filename) {
-    var test = this.collector.test_modules_by_filename[i];
-    if (test.status != 'done') {
-      this.runTestModule(test);
-    }
-  }
-}
+
 Runner.prototype.runTestFile = function (filename) {
   this.collector.initTestModule(filename);
   this.runTestModule(this.collector.test_modules_by_filename[filename]);
@@ -467,6 +431,7 @@ Runner.prototype.end = function () {
   } catch(e) {
     events.fireEvent('error', "persist serialization failed.");
   }
+  this.collector.stopHttpd();
   events.fireEvent('endRunner', true);
 }
 
@@ -587,12 +552,6 @@ Runner.prototype.runTestModule = function (module) {
 }
 
 
-var runTestDirectory = function (dir, invokedFromIDE) {
-  var runner = new Runner(new Collector(), invokedFromIDE);
-  runner.runTestDirectory(dir);
-  runner.end();
-  return true;
-}
 var runTestFile = function (filename, invokedFromIDE) {
   var runner = new Runner(new Collector(), invokedFromIDE);
   runner.runTestFile(filename);

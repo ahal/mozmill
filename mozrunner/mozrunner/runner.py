@@ -188,7 +188,7 @@ class Runner(object):
                     self.process_handler.pid = pid
                     self.process_handler.wait(timeout=timeout)
 
-    def stop(self, kill_signal=signal.SIGTERM):
+    def stop(self):
         """Kill the app"""
         if self.process_handler is None:
             return
@@ -204,6 +204,13 @@ class Runner(object):
                 self.process_handler.kill(group=True)
             except Exception, e:
                 raise Exception('Cannot kill process, '+type(e).__name__+' '+e.message)
+
+    def reset(self):
+        """
+        reset the runner between runs
+        currently, only resets the profile, but probably should do more
+        """
+        self.profile.reset()
 
     def cleanup(self):
         self.stop()
@@ -295,7 +302,7 @@ class CLI(object):
                           action="store_true",
                           help="Print module information")
         parser.add_option('--app', dest='app', default='firefox',
-                          help="Application to use")
+                          help="Application to use [DEFAULT: %default]")
         parser.add_option('--app-arg', dest='appArgs',
                           default=[], action='append',
                           help="provides an argument to the test application")

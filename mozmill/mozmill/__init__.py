@@ -44,13 +44,13 @@ import sys
 import traceback
 
 import jsbridge
-from jsbridge.network import JSBridgeDisconnectError
+import manifestparser
 import mozrunner
 import mozprofile
 import handlers
 
+from jsbridge.network import JSBridgeDisconnectError
 from datetime import datetime, timedelta
-from manifestdestiny import manifests
 from time import sleep
 
 # metadata
@@ -67,6 +67,8 @@ class TestResults(object):
     accumulate test results for Mozmill
     """
     def __init__(self):
+
+        # test statistics
         self.passes = []
         self.fails = []
         self.skipped = []
@@ -159,6 +161,7 @@ class MozMill(object):
         os.environ['MOZ_CRASHREPORTER_NO_REPORT'] = '1'
 
     ### methods for listeners
+
     def add_listener(self, callback, **kwargs):
         self.listeners.append((callback, kwargs,))
 
@@ -179,29 +182,6 @@ class MozMill(object):
             self.currentShutdownMode = obj
         self.userShutdownEnabled = not self.userShutdownEnabled        
 
-    def fire_python_callback(self, method, arg, python_callbacks_module):
-        meth = getattr(python_callbacks_module, method)
-        try:
-            meth(arg)
-        except Exception, e:
-            self.endTest_listener({"name":method, "failed":1, 
-                                   "python_exception_type":e.__class__.__name__,
-                                   "python_exception_string":str(e),
-                                   "python_traceback":traceback.format_exc(),
-                                   "filename":python_callbacks_module.__file__})
-            return False
-        self.endTest_listener({"name":method, "failed":0, 
-                               "filename":python_callbacks_module.__file__})
-        return True
-    
-    def firePythonCallback_listener(self, obj):
-        callback_file = "%s_callbacks.py" % os.path.splitext(obj['filename'])[0]
-        if os.path.isfile(callback_file):
-            python_callbacks_module = imp.load_source('callbacks', callback_file)
-        else:
-            raise Exception("No valid callback file")
-        self.fire_python_callback(obj['method'], obj['arg'], python_callbacks_module)
-
     ### methods for startup
 
     def create_network(self):
@@ -211,6 +191,7 @@ class MozMill(object):
                                                                           self.jsbridge_port)
 
         # set a timeout on jsbridge actions in order to ensure termination
+        # XXX bad touch
         self.back_channel.timeout = self.bridge.timeout = self.jsbridge_timeout
         
         # Assign listeners to the back channel
@@ -223,7 +204,6 @@ class MozMill(object):
         """prepare to run the tests"""
         
         self.runner = runner
-        self.add_listener(self.firePythonCallback_listener, eventType='mozmill.firePythonCallback')
         self.endRunnerCalled = False
         
         self.runner.start()
@@ -232,11 +212,11 @@ class MozMill(object):
         self.results.appinfo = self.get_appinfo(self.bridge)
 
 
-    def run_tests(self, tests, sleeptime=0):
+    def run_tests(self, paths, sleeptime=0):
         """
         run a test file or directory
         - tests : test files or directories to run
-        - sleeptime : initial time to sleep [s] (not sure why the default is 4)
+        - sleeptime : initial time to sleep [s]
         """
 
         frame = jsbridge.JSObject(self.bridge,
@@ -246,16 +226,35 @@ class MozMill(object):
         # transfer persisted data
         frame.persisted = self.persisted
 
+        # collect tests
+        tests = []
+        for path in paths:
+            tests += self.collect_tests(path)
+
+        # run tests
         for test in tests:
-            # run the test directory or file
-            if os.path.isdir(test):
-                frame.runTestDirectory(test)
-            else:
-                frame.runTestFile(test)
+          frame.runTestFile(test)
 
         # Give a second for any callbacks to finish.
         sleep(1)
+
+    def collect_tests(self, path):
+        """find all tests for a given path"""
         
+        if os.path.isfile(path):
+          return [path]
+
+        files = []
+        for filename in sorted(os.listdir(path)):
+            if filename.startswith("test"):
+                full = os.path.join(path, filename)
+                if os.path.isdir(full):
+                    files += self.collect_tests(full)
+                else:
+                    files.append(full)
+        return files
+
+
     def run(self, tests):
         """run the tests"""
         disconnected = False
@@ -355,23 +354,12 @@ class MozMill(object):
             self.runner.cleanup()
 
 class MozMillRestart(MozMill):
-
-    def __init__(self, *args, **kwargs):
-        MozMill.__init__(self, *args, **kwargs)
-        self.python_callbacks = [] # TODO: why do we reset this?
     
     def start(self, runner):
         # XXX note that this block is duplicated *EXACTLY* from MozMill.start
         self.runner = runner
         self.endRunnerCalled = False
-        self.add_listener(self.firePythonCallback_listener, eventType='mozmill.firePythonCallback')
-     
-    def firePythonCallback_listener(self, obj):
-        if obj['fire_now']:
-            self.fire_python_callback(obj['method'], obj['arg'], self.python_callbacks_module)
-        else:
-            self.python_callbacks.append(obj)
-        
+
     def start_runner(self):
 
         # if user_restart we don't need to start the browser back up
@@ -406,10 +394,8 @@ class MozMillRestart(MozMill):
                 tests.append(os.path.join(test_dir, "test"+str(counter)+".js"))
                 counter += 1
 
+        # XXX this should probably go earlier
         self.add_listener(self.endRunner_listener, eventType='mozmill.endRunner')
-
-        if os.path.isfile(os.path.join(test_dir, 'callbacks.py')):
-            self.python_callbacks_module = imp.load_source('callbacks', os.path.join(test_dir, 'callbacks.py'))
 
         for test in tests:
             frame = self.start_runner()
@@ -429,32 +415,11 @@ class MozMillRestart(MozMill):
                 if not self.userShutdownEnabled:
                     raise JSBridgeDisconnectError()
             self.userShutdownEnabled = False
-
-            for callback in self.python_callbacks:
-                self.fire_python_callback(callback['method'], callback['arg'], self.python_callbacks_module)
-            self.python_callbacks = []
         
-        self.python_callbacks_module = None    
-        
-        # Reset the profile.
-        # XXX profile should have a method just to clone:
-        # https://bugzilla.mozilla.org/show_bug.cgi?id=585106
-        profile = self.runner.profile
-        profile.cleanup()
-        if profile.create_new:
-            profile.profile = profile.create_new_profile(self.runner.binary)                
-        for addon in profile.addons:
-            profile.install_addon(addon)
-        if jsbridge.extension_path not in profile.addons:
-            profile.install_addon(jsbridge.extension_path)
-        if extension_path not in profile.addons:
-            profile.install_addon(extension_path)
-        profile.set_preferences(profile.preferences)
+        # Reset the runner + profile.
+        self.runner.reset()
     
     def run_tests(self, tests, sleeptime=0):
-
-        # XXX should document what this does...it seems out of place
-        self.add_listener(self.firePythonCallback_listener, eventType='mozmill.firePythonCallback')
 
         for test_dir in tests:
 
@@ -484,7 +449,7 @@ class MozMillRestart(MozMill):
             self.runner.cleanup()
 
 
-class CLI(jsbridge.CLI):
+class CLI(mozrunner.CLI):
     """command line interface to mozmill"""
     
     module = "mozmill"
@@ -492,7 +457,7 @@ class CLI(jsbridge.CLI):
     def __init__(self, args):
 
         # add and parse options
-        jsbridge.CLI.__init__(self, args)
+        mozrunner.CLI.__init__(self, args)
 
         # instantiate plugins
         self.event_handlers = []
@@ -502,7 +467,7 @@ class CLI(jsbridge.CLI):
                 self.event_handlers.append(handler)
 
         # read tests from manifests (if any)
-        self.manifest = manifests.TestManifest(manifests=self.options.manifests)
+        self.manifest = manifestparser.TestManifest(manifests=self.options.manifests)
 
         # expand user directory and check existence for the test
         for test in self.options.tests:
@@ -518,10 +483,10 @@ class CLI(jsbridge.CLI):
             self.manifest.tests.append(test_dict)
 
     def add_options(self, parser):
-        jsbridge.CLI.add_options(self, parser)
+        mozrunner.CLI.add_options(self, parser)
 
         parser.add_option("-t", "--test", dest="tests",
-                          action='append', default=[], 
+                          action='append', default=[],
                           help='Run test')
         parser.add_option("--timeout", dest="timeout", type="float",
                           default=60., 
@@ -531,31 +496,43 @@ class CLI(jsbridge.CLI):
                           help="operate in restart mode")
         parser.add_option("-m", "--manifest", dest='manifests', action='append',
                           help='test manifest .ini file')
+        parser.add_option('-D', '--debug', dest="debug", 
+                          action="store_true",
+                          help="debug mode",
+                          default=False)
+        parser.add_option('-P', '--port', dest="port", type="int",
+                          default=24242,
+                          help="TCP port to run jsbridge on.")
 
         for cls in handlers.handlers():
-            cls.add_options(parser)
-
-    def get_profile(self, *args, **kwargs):
-        # XXX to refactor; the slots should be smart enough to
-        # make this unnecessary
-        profile = jsbridge.CLI.get_profile(self, *args, **kwargs)
-        profile.install_addon(extension_path)
-        return profile
+            if hasattr(cls, 'add_options'):
+                cls.add_options(parser)
 
     def profile_args(self):
         """
         return arguments needed to make a profile object from
         this command-line interface
         """
-        profile_args = jsbridge.CLI.profile_args(self)
+        profile_args = mozrunner.CLI.profile_args(self)
         profile_args['addons'].append(extension_path)
+        profile_args['addons'].append(jsbridge.extension_path)
+
+        if self.options.debug:
+            profile_args['preferences'] = {
+              'extensions.checkCompatibility': False,
+              'javascript.options.strict': True
+            }
         return profile_args
 
     def command_args(self):
-        command_args = jsbridge.CLI.command_args(self)
-        if '-foreground' not in command_args:
-            command_args.append('-foreground')
-        return command_args
+        cmdargs = mozrunner.CLI.command_args(self)
+        if self.options.debug and '-jsconsole' not in cmdargs:
+            cmdargs.append('-jsconsole')
+        if '-jsbridge' not in cmdargs:
+            cmdargs += ['-jsbridge', '%d' % self.options.port]
+        if '-foreground' not in cmdargs:
+            cmdargs.append('-foreground')
+        return cmdargs
 
     def run_tests(self, mozmill_cls, tests, runner, results):
         """
@@ -603,7 +580,7 @@ class CLI(jsbridge.CLI):
 
 
         # run the tests
-        e = None # runtime exception
+        exception = None # runtime exception
         try:
             if normal_tests:
                 self.run_tests(MozMill, normal_tests, runner, results)
@@ -611,17 +588,17 @@ class CLI(jsbridge.CLI):
             if restart_tests:
                 self.run_tests(MozMillRestart, restart_tests, runner, results)
 
-        except Exception, e:
+        except:
+            exception_type, exception, tb = sys.exc_info()
             runner.cleanup() # cleanly shutdown
-            raise
 
         # do whatever reporting you're going to do
         results.stop(self.event_handlers)
 
         # exit on bad stuff happen
-        if e:
-            raise
-        if results.fails:
+        if exception:
+            traceback.print_exception(exception_type, exception, tb)
+        if exception or results.fails:
             sys.exit(1)
 
         # return results on success [currently unused]

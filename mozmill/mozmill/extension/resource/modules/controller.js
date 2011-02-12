@@ -338,6 +338,235 @@ MozMillController.prototype.open = function(url)
   frame.events.pass({'function':'Controller.open()'});
 }
 
+/**
+ * Synthesize a general mouse event on the given element
+ *
+ * @param {ElemBase} aTarget
+ *        Element which will receive the mouse event
+ * @param {number} aOffsetX
+ *        Relative x offset in the elements bounds to click on
+ * @param {number} aOffsetY
+ *        Relative y offset in the elements bounds to click on
+ * @param {object} aEvent
+ *        Information about the event to send
+ *        Elements: accelKey   - Hold down the accelerator key (ctrl/meta)
+ *                               [optional - default: false]
+ *                  altKey     - Hold down the alt key
+ *                               [optional - default: false]
+ *                  button     - Mouse button to use
+ *                               [optional - default: 0]
+ *                  clickCount - Number of counts to click
+ *                               [optional - default: 1]
+ *                  ctrlKey    - Hold down the ctrl key
+ *                               [optional - default: false]
+ *                  metaKey    - Hold down the meta key (command key on Mac)
+ *                               [optional - default: false]
+ *                  shiftKey   - Hold down the shift key
+ *                               [optional - default: false]
+ *                  type       - Type of the mouse event ('click', 'mousedown',
+ *                               'mouseup', 'mouseover', 'mouseout')
+ *                               [optional - default: 'mousedown' + 'mouseup']
+ * @param {object} aExpectedEvent
+ *        Information about the expected event to occur
+ *        Elements: target     - Element which should receive the event
+ *                               [optional - default: current element]
+ *                  type       - Type of the expected mouse event
+ */
+MozMillController.prototype.mouseEvent = function(aTarget, aOffsetX, aOffsetY,
+                                                  aEvent, aExpectedEvent) {
+
+  var element = aTarget.getNode();
+  if (!element) {
+    throw new Error(arguments.callee.name + ": could not find element " +
+                    aTarget.getInfo());
+  }
+
+  // If no offset is given we will use the center of the element to click on.
+  var rect = element.getBoundingClientRect();
+  if (isNaN(aOffsetX))
+    aOffsetX = rect.width / 2;
+  if (isNaN(aOffsetY))
+    aOffsetY = rect.height / 2;
+
+  // Scroll element into view otherwise the click will fail
+  if (element.scrollIntoView)
+    element.scrollIntoView();
+
+  if (aExpectedEvent) {
+    // The expected event type has to be set
+    if (!aExpectedEvent.type)
+      throw new Error(arguments.callee.name + ": Expected event type not specified");
+
+    // If no target has been specified use the specified element
+    var target = aExpectedEvent.target ? aExpectedEvent.target.getNode() : element;
+    if (!target) {
+      throw new Error(arguments.callee.name + ": could not find element " +
+                      aExpectedEvent.target.getInfo());
+    }
+
+    EventUtils.synthesizeMouseExpectEvent(element, aOffsetX, aOffsetY, aEvent,
+                                          target, aExpectedEvent.event,
+                                          "controller.mouseEvent()",
+                                          element.ownerDocument.defaultView);
+  } else {
+    EventUtils.synthesizeMouse(element, aOffsetX, aOffsetY, aEvent,
+                               element.ownerDocument.defaultView);
+  }
+
+  sleep(0);
+}
+
+/**
+ * Synthesize a mouse click event on the given element
+ */
+MozMillController.prototype.click = function(elem, left, top, expectedEvent) {
+  var element = elem.getNode()
+
+  // Handle menu items differently
+  if (element && element.tagName == "menuitem") {
+    element.click();
+  } else {
+    this.mouseEvent(elem, left, top, {}, expectedEvent);
+  }
+
+  frame.events.pass({'function':'controller.click()'});
+}
+
+/**
+ * Synthesize a double click on the given element
+ */
+MozMillController.prototype.doubleClick = function(elem, left, top, expectedEvent) {
+  this.mouseEvent(elem, left, top, {clickCount: 2}, expectedEvent);
+
+  frame.events.pass({'function':'controller.doubleClick()'});
+  return true;
+}
+
+/**
+ * Synthesize a mouse down event on the given element
+ */
+MozMillController.prototype.mouseDown = function (elem, button, left, top, expectedEvent) {
+  this.mouseEvent(elem, left, top, {button: button, type: "mousedown"}, expectedEvent);
+
+  frame.events.pass({'function':'controller.mouseDown()'});
+  return true;
+};
+
+/**
+ * Synthesize a mouse out event on the given element
+ */
+MozMillController.prototype.mouseOut = function (elem, button, left, top, expectedEvent) {
+  this.mouseEvent(elem, left, top, {button: button, type: "mouseout"}, expectedEvent);
+
+  frame.events.pass({'function':'controller.mouseOut()'});
+  return true;
+};
+
+/**
+ * Synthesize a mouse over event on the given element
+ */
+MozMillController.prototype.mouseOver = function (elem, button, left, top, expectedEvent) {
+  this.mouseEvent(elem, left, top, {button: button, type: "mouseover"}, expectedEvent);
+
+  frame.events.pass({'function':'controller.mouseOver()'});
+  return true;
+};
+
+/**
+ * Synthesize a mouse up event on the given element
+ */
+MozMillController.prototype.mouseUp = function (elem, button, left, top, expectedEvent) {
+  this.mouseEvent(elem, left, top, {button: button, type: "mouseup"}, expectedEvent);
+
+  frame.events.pass({'function':'controller.mouseUp()'});
+  return true;
+};
+
+/**
+ * Synthesize a mouse middle click event on the given element
+ */
+MozMillController.prototype.middleClick = function(elem, left, top, expectedEvent) {
+  this.mouseEvent(elem, left, top, {button: 1}, expectedEvent);
+
+  frame.events.pass({'function':'controller.middleClick()'});
+  return true;
+}
+
+/**
+ * Synthesize a mouse right click event on the given element
+ */
+MozMillController.prototype.rightClick = function(elem, left, top, expectedEvent) {
+  this.mouseEvent(elem, left, top, {type : "contextmenu", button: 2 }, expectedEvent);
+
+  frame.events.pass({'function':'controller.rightClick()'});
+  return true;
+}
+
+/**
+ * Synthesize a mouse right click event on the given element (deprecated)
+ */
+MozMillController.prototype.rightclick = function(){
+  frame.log({function:'rightclick - Deprecation Warning', message:'Controller.rightclick should be renamed to Controller.rightClick'});
+  this.rightClick.apply(this, arguments);
+}
+
+/**
+ * Enable/Disable a checkbox depending on the target state
+ */
+MozMillController.prototype.check = function(el, state) {
+  var result = false;
+  var element = el.getNode();
+
+  if (!element) {
+    throw new Error("could not find element " + el.getInfo());
+    return false;
+  }
+
+  // If we have a XUL element, unwrap its XPCNativeWrapper
+  if (element.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul") {
+    element = utils.unwrapNode(element);
+  }
+
+  state = (typeof(state) == "boolean") ? state : false;
+  if (state != element.checked) {
+    this.click(el);
+    this.waitFor(function() {
+      return element.checked == state;
+    }, "Checkbox " + el.getInfo() + " could not be checked/unchecked", 500);
+
+    result = true;
+  }
+
+  frame.events.pass({'function':'Controller.check(' + el.getInfo() + ', state: ' + state + ')'});
+  return result;
+}
+
+/**
+ * Select the given radio button
+ */
+MozMillController.prototype.radio = function(el)
+{
+  var element = el.getNode();
+  if (!element) {
+    throw new Error("could not find element " + el.getInfo());
+    return false;
+  }
+
+  this.click(el);
+  this.waitFor(function() {
+    // If we have a XUL element, unwrap its XPCNativeWrapper
+    if (element.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul") {
+      element = utils.unwrapNode(element);
+      return element.selected == true;
+    }
+    return element.checked == true;
+  }, "Radio button " + el.getInfo() + " could not be selected", 500);
+
+  frame.events.pass({'function':'Controller.radio(' + el.getInfo() + ')'});
+  return true;
+}
+
+>>>>>>> d7efdc8b7f51e62a6493ebb28b5146b1a5c185d2
 MozMillController.prototype.waitFor = function(callback, message, timeout,
                                                interval, thisObject) {
   utils.waitFor(callback, message, timeout, interval, thisObject);

@@ -45,8 +45,6 @@ import tempfile
 import zipfile
 from xml.dom import minidom
 
-from utils import makedirs
-
 try:
     import simplejson
 except ImportError:
@@ -65,7 +63,7 @@ class Profile(object):
     def __init__(self, profile=None, addons=None, preferences=None):
                  
         # Handle profile creation
-        self.create_new = not(bool(profile))
+        self.create_new = not profile
         if profile:
             self.profile = profile
         else:
@@ -84,6 +82,16 @@ class Profile(object):
         self.addons = addons or []
         for addon in self.addons:
             self.install_addon(addon)
+
+    def reset(self):
+        """
+        reset the profile to the beginning state
+        """
+        self.cleanup()
+        if self.create_new:
+            self.__init__(addons=self.addons, preferences=self.preferences)
+        else:
+            self.__init__(profile=self.profile, addons=self.addons, preferences=self.preferences)
 
     def create_new_profile(self):
         """Create a new clean profile in tmp which is a simple empty folder"""
@@ -137,13 +145,14 @@ class Profile(object):
                 compressed_file = zipfile.ZipFile(addon, "r")
                 for name in compressed_file.namelist():
                     if name.endswith('/'):
-                        makedirs(os.path.join(tmpdir, name))
+                        os.makedirs(os.path.join(tmpdir, name))
                     else:
                         if not os.path.isdir(os.path.dirname(os.path.join(tmpdir, name))):
-                            makedirs(os.path.dirname(os.path.join(tmpdir, name)))
+                            os.makedirs(os.path.dirname(os.path.join(tmpdir, name)))
                         data = compressed_file.read(name)
                         f = open(os.path.join(tmpdir, name), 'wb')
-                        f.write(data) ; f.close()
+                        f.write(data)
+                        f.close()
                 addon = tmpdir
 
             # determine the addon id
