@@ -242,13 +242,6 @@ function Name(_document, nName) {
 }
 
 
-function Lookup (_document, expression) {
-  if (_document == undefined || expression == undefined) {
-    throw new Error('Lookup constructor did not recieve enough arguments.');
-  }
-  this._view = _document.defaultView;
-  this.expression = expression;
-}
 var _returnResult = function (results) {
   if (results.length == 0) {
     return null
@@ -359,26 +352,21 @@ var _anonByIndex = function (_document, parent, i) {
   return _document.getAnonymousNodes(parent)[i];
 }
 
-Lookup.prototype.getInfo = function () {
-  return "Lookup: "+ this.expression; 
-}
-Lookup.prototype.exists = function () {
-  try {
-    var e = this.getNode();
-  } catch (ex) {
-    return false;
+
+function Lookup (_document, expression) {
+  if (_document == undefined || expression == undefined) {
+    throw new Error('Lookup constructor did not recieve enough arguments.');
   }
-  if (e) {
-    return true;
-  }
-  return false;
-}
-Lookup.prototype.getNode = function () {
+  this._view = _document.defaultView;
+  this.expression = expression;
+
   var expSplit = [e for each (e in smartSplit(this.expression) ) if (e != '')];
   expSplit.unshift(this._view.document)
   _document = this._view.document;
   var nCases = {'id':_byID, 'name':_byName, 'attrib':_byAttrib, 'index':_byIndex};
   var aCases = {'name':_anonByName, 'attrib':_anonByAttrib, 'index':_anonByIndex};
+  
+ 
   var reduceLookup = function (parent, exp) {
     // Handle case where only index is provided
     var cases = nCases;
@@ -394,7 +382,7 @@ Lookup.prototype.getNode = function () {
     }
     if (withs.startsWith(exp, '[')) {
       try {
-        var obj = json2.JSON.parse(strings.vslice(exp, '[', ']'))
+        var obj = json2.JSON.parse(strings.vslice(exp, '[', ']'));
       } catch (err) {
         throw new Error(err+'. String to be parsed was || '+strings.vslice(exp, '[', ']')+' ||');
       }
@@ -444,7 +432,7 @@ Lookup.prototype.getNode = function () {
       return result;
     }
     // Maybe we should cause an exception here
-    return false
-  }
-  return expSplit.reduce(reduceLookup);
+    return false;
+  };
+  return mozElem.createInstance(expSplit.reduce(reduceLookup));
 }

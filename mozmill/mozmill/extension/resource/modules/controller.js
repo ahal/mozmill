@@ -321,6 +321,73 @@ var MozMillController = function (window) {
 
 MozMillController.prototype.sleep = utils.sleep;
 
+/**
+ * Synthesize a keypress event on the given element
+ *
+ * @param {ElemBase} aTarget
+ *        Element which will receive the keypress event
+ * @param {string} aKey
+ *        Key to use for synthesizing the keypress event. It can be a simple
+ *        character like "k" or a string like "VK_ESCAPE" for command keys
+ * @param {object} aModifiers
+ *        Information about the modifier keys to send
+ *        Elements: accelKey   - Hold down the accelerator key (ctrl/meta)
+ *                               [optional - default: false]
+ *                  altKey     - Hold down the alt key
+ *                              [optional - default: false]
+ *                  ctrlKey    - Hold down the ctrl key
+ *                               [optional - default: false]
+ *                  metaKey    - Hold down the meta key (command key on Mac)
+ *                               [optional - default: false]
+ *                  shiftKey   - Hold down the shift key
+ *                               [optional - default: false]
+ * @param {object} aExpectedEvent
+ *        Information about the expected event to occur
+ *        Elements: target     - Element which should receive the event
+ *                               [optional - default: current element]
+ *                  type       - Type of the expected key event
+ */
+MozMillController.prototype.keypress = function(aTarget, aKey, aModifiers, aExpectedEvent) {
+  var element = (aTarget == null) ? this.window : aTarget.getNode();
+  if (!element) {
+    throw new Error("Could not find element " + aTarget.getInfo());
+    return false;
+  }
+
+  events.triggerKeyEvent(element, 'keypress', aKey, aModifiers, aExpectedEvent);
+
+  frame.events.pass({'function':'Controller.keypress()'});
+  return true;
+}
+
+/**
+ * Synthesize keypress events for each character on the given element
+ *
+ * @param {ElemBase} aTarget
+ *        Element which will receive the type event
+ * @param {string} aText
+ *        The text to send as single keypress events
+ * @param {object} aExpectedEvent
+ *        Information about the expected event to occur
+ *        Elements: target     - Element which should receive the event
+ *                               [optional - default: current element]
+ *                  type       - Type of the expected key event
+ */
+MozMillController.prototype.type = function (aTarget, aText, aExpectedEvent) {
+  var element = (aTarget == null) ? this.window : aTarget.getNode();
+  if (!element) {
+    throw new Error("could not find element " + aTarget.getInfo());
+    return false;
+  }
+
+  Array.forEach(aText, function(letter) {
+    events.triggerKeyEvent(element, 'keypress', letter, {}, aExpectedEvent);
+  });
+
+  frame.events.pass({'function':'Controller.type()'});
+  return true;
+}
+
 // Open the specified url in the current tab
 MozMillController.prototype.open = function(url)
 {
@@ -566,7 +633,6 @@ MozMillController.prototype.radio = function(el)
   return true;
 }
 
->>>>>>> d7efdc8b7f51e62a6493ebb28b5146b1a5c185d2
 MozMillController.prototype.waitFor = function(callback, message, timeout,
                                                interval, thisObject) {
   utils.waitFor(callback, message, timeout, interval, thisObject);
@@ -649,6 +715,114 @@ MozMillController.prototype.startUserShutdown = function (timeout, restart) {
   this.fireEvent('userShutdown', restart ? 2 : 1);
   this.window.setTimeout(this.fireEvent, timeout, 'userShutdown', 0);
 }
+
+/* Select the specified option and trigger the relevant events of the element.*/
+MozMillController.prototype.select = function (el, indx, option, value) {
+  element = el.getNode();
+  if (!element){
+    throw new Error("Could not find element " + el.getInfo());
+    return false;
+  }
+
+  //if we have a select drop down
+  if (element.localName.toLowerCase() == "select"){
+    var item = null;
+
+    // The selected item should be set via its index
+    if (indx != undefined) {
+      // Resetting a menulist has to be handled separately
+      if (indx == -1) {
+        events.triggerEvent(element, 'focus', false);
+        element.selectedIndex = indx;
+        events.triggerEvent(element, 'change', true);
+
+     frame.events.pass({'function':'Controller.select()'});
+     return true;
+      } else {
+        item = element.options.item(indx);
+    }
+    } else {
+      for (var i = 0; i < element.options.length; i++) {
+        var entry = element.options.item(i);
+        if (option != undefined && entry.innerHTML == option ||
+            value != undefined && entry.value == value) {
+          item = entry;
+         break;
+       }
+     }
+           }
+
+    // Click the item
+    try {
+      // EventUtils.synthesizeMouse doesn't work.
+      events.triggerEvent(element, 'focus', false);
+      item.selected = true;
+           events.triggerEvent(element, 'change', true);
+
+      frame.events.pass({'function':'Controller.select()'});
+      return true;
+    } catch (ex) {
+      throw new Error("No item selected for element " + el.getInfo());
+     return false;
+   }
+  }
+  //if we have a xul menulist select accordingly
+  else if (element.localName.toLowerCase() == "menulist"){
+    var ownerDoc = element.ownerDocument;
+    // Unwrap the XUL element's XPCNativeWrapper
+    if (element.namespaceURI.toLowerCase() == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul") {
+      element = utils.unwrapNode(element);
+    }
+    var item = null;
+
+    if (indx != undefined) {
+      if (indx == -1) {
+        events.triggerEvent(element, 'focus', false);
+        element.selectedIndex = indx;
+        events.triggerEvent(element, 'change', true);
+
+        frame.events.pass({'function':'Controller.select()'});
+        return true;
+      } else {
+        item = element.getItemAtIndex(indx);
+      }
+    } else {
+      for (var i = 0; i < element.itemCount; i++) {
+        var entry = element.getItemAtIndex(i);
+        if (option != undefined && entry.label == option ||
+            value != undefined && entry.value == value) {
+          item = entry;
+          break;
+        }
+      }
+    }
+
+    // Click the item
+    try {
+      EventUtils.synthesizeMouse(element, 1, 1, {}, ownerDoc.defaultView);
+      this.sleep(0);
+
+      // Scroll down until item is visible
+      for (var i = s = element.selectedIndex; i <= element.itemCount + s; ++i) {
+        var entry = element.getItemAtIndex((i + 1) % element.itemCount);
+        EventUtils.synthesizeKey("VK_DOWN", {}, ownerDoc.defaultView);
+        if (entry.label == item.label) {
+          break;
+        }
+        else if (entry.label == "") i += 1;
+      }
+
+      EventUtils.synthesizeMouse(item, 1, 1, {}, ownerDoc.defaultView);
+      this.sleep(0);
+
+      frame.events.pass({'function':'Controller.select()'});
+      return true;
+    } catch (ex) {
+      throw new Error('No item selected for element ' + el.getInfo());
+      return false;
+    }
+  }
+};
 
 //Browser navigation functions
 MozMillController.prototype.goBack = function(){

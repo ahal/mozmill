@@ -74,6 +74,8 @@ var createInstance = function (elem) {
  */
 function MozMillElement(elem) {
   this.element = elem;
+  // Used to maintain backwards compatibility with controller.js
+  this.isElement = true;
 } 
 
 MozMillElement.prototype.getNode = function() {
@@ -344,6 +346,15 @@ MozMillElement.prototype.waitThenClick = function (timeout, interval) {
 MozMillElement.prototype.getInfo = function() {
   return "getInfo()";
 };
+// Used to maintain backwards compatibility with controller.js
+MozMillElement.prototype.exists = function() {
+  if (this.element) return true;
+  return false;
+};
+// Used to maintain backwards compatibility with controller.js
+MozMillElement.prototype.getNode = function() {
+  return this;
+};
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
@@ -427,7 +438,12 @@ MozMillRadio.prototype.select = function()
   
   var element = this.element;
   utils.waitFor(function() {
-    return element.selected == true;
+    // If we have a XUL element, unwrap its XPCNativeWrapper
+    if (element.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul") {
+      element = utils.unwrapNode(element);
+      return element.selected == true;
+    }
+    return element.checked == true;
   }, "Radio button " + this.getInfo() + " could not be selected", 500);
 
   frame.events.pass({'function':'Controller.radio(' + this.getInfo() + ')'});
