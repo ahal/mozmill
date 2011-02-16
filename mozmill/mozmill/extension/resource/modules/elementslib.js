@@ -37,7 +37,7 @@
 // ***** END LICENSE BLOCK *****
 
 var EXPORTED_SYMBOLS = ["Elem", "ID", "Link", "XPath", "Selector", "Name", "Anon", "AnonXPath",
-                        "Lookup", "Get", "_byID", "_byName", "_byAttrib", "_byAnonAttrib",
+                        "Lookup", "_byID", "_byName", "_byAttrib", "_byAnonAttrib",
                        ];
 
 var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);

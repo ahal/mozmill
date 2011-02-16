@@ -30,4 +30,15 @@ var testFoo = function(){
   var logo = elementslib.XPath(controller.tabs.activeTab, "/html/body/div/table/tbody/tr/td/table/tbody/tr/td/a/img");
   logo.click();
   controller.waitForPageLoad();
+
+  
+  const NAV_BAR = '/id("main-window")/id("tab-view-deck")/{"flex":"1"}' +
+                                 '/id("navigator-toolbox")/id("nav-bar")';
+  const URL_BAR = NAV_BAR + '/id("urlbar-container")/id("urlbar")';
+  var urlBar = elementslib.Lookup(controller.window.document, URL_BAR);
+  
+  urlBar.keypress("a", {accelKey:true});
+  urlBar.type("http://www.mozilla.org");
+  urlBar.keypress("VK_RETURN", {});
+  controller.waitForPageLoad();
 };
