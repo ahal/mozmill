@@ -123,7 +123,7 @@ function nodeSearch(doc, func, string) {
 }
 
 function Elem(node) {
-  return mozElem.createInstance(node);
+  return mozElem.createInstance(node, "Elem instance.");
 }
 
 
@@ -137,14 +137,14 @@ function Selector(_document, selector) {
     return this.document.querySelectorAll(s);
   };
   var nodes = nodeSearch(this._view.document, this.getNodeForDocument, this.selector);
-  return mozElem.createInstance(nodes ? nodes[index || 0] : null);
+  return mozElem.createInstance(nodes ? nodes[index || 0] : null, "Selector: " + this.selector);
 }
 
 function ID(_document, nodeID) {
   if (_document == undefined || nodeID == undefined) {
     throw new Error('ID constructor did not recieve enough arguments.');
   }
-  return mozElem.createInstance(_document.getElementById(nodeID));
+  return mozElem.createInstance(_document.getElementById(nodeID), "ID: " + nodeID);
 }
 
 function Link(_document, linkName) {
@@ -192,7 +192,7 @@ function Link(_document, linkName) {
     return null;
   };
   
-  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.linkName));
+  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.linkName), "Link: " + this.linkName);
 }
 
 
@@ -221,7 +221,7 @@ function XPath(_document, expr) {
       found.push(res);
     return found[0];
   };
-  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.expr));
+  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.expr), "XPath: " + expr);
 }
 
 function Name(_document, nName) {
@@ -238,7 +238,7 @@ function Name(_document, nName) {
     catch(err){};
     return null;
   };
-  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.nName));
+  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.nName), "Name: " + this.nName);
 }
 
 
@@ -434,5 +434,5 @@ function Lookup (_document, expression) {
     // Maybe we should cause an exception here
     return false;
   };
-  return mozElem.createInstance(expSplit.reduce(reduceLookup));
+  return mozElem.createInstance(expSplit.reduce(reduceLookup), "Lookup: " + this.expression);
 }

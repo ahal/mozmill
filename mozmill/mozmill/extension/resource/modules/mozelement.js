@@ -46,41 +46,42 @@ var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', u
 
 var waitFor = utils.waitFor;
 
-var createInstance = function (elem) {
+var createInstance = function (elem, info) {
   switch(elem.localName.toLowerCase()) {
     case 'select':
     case 'menulist':
-      return new MozMillDropList(elem);
+      return new MozMillDropList(elem, info);
     case 'input':
       var type = elem.getAttribute('type');
       if (type === 'checkbox') {
-        return new MozMillCheckBox(elem);
+        return new MozMillCheckBox(elem, info);
       } else if (type === 'radio') {
-        return new MozMillRadio(elem);
+        return new MozMillRadio(elem, info);
       }
       break;
     case 'checkbox':
-      return new MozMillCheckBox(elem);
+      return new MozMillCheckBox(elem, info);
     case 'radio':
-      return new MozMillRadio(elem);
+      return new MozMillRadio(elem, info);
     default:
   }
-  return new MozMillElement(elem);
+  return new MozMillElement(elem, info);
 };
 
 /**
  * MozMillElement
  * The base class for all mozmill elements
  */
-function MozMillElement(elem) {
+function MozMillElement(elem, info) {
   this.element = elem;
+  this.info = info;
   // Used to maintain backwards compatibility with controller.js
   this.isElement = true;
-} 
+}; 
 
 MozMillElement.prototype.getNode = function() {
   return this.element;
-}
+};
 
 /**
  * Synthesize a keypress event on the given element
@@ -330,7 +331,7 @@ MozMillElement.prototype.waitForImage = function (timeout, interval) {
   }, "timeout exceeded for waitForImage " + this.getInfo(), timeout, interval);
 
   frame.events.pass({'function':'Controller.waitForImage()'});
-}
+};
 
 MozMillElement.prototype.__defineGetter__("waitForEvents", function() {
   if (this._waitForEvents == undefined)
@@ -344,16 +345,13 @@ MozMillElement.prototype.waitThenClick = function (timeout, interval) {
 };
 
 MozMillElement.prototype.getInfo = function() {
-  return "getInfo()";
+  return this.info;
 };
+
 // Used to maintain backwards compatibility with controller.js
 MozMillElement.prototype.exists = function() {
   if (this.element) return true;
   return false;
-};
-// Used to maintain backwards compatibility with controller.js
-MozMillElement.prototype.getNode = function() {
-  return this;
 };
 
 
@@ -367,10 +365,10 @@ MozMillElement.prototype.getNode = function() {
 MozMillCheckBox.prototype = new MozMillElement();
 MozMillCheckBox.prototype.parent = MozMillElement.prototype;
 MozMillCheckBox.prototype.constructor = MozMillCheckBox;
-function MozMillCheckBox(elem) {
-  this.parent.constructor.call(this, elem);
+function MozMillCheckBox(elem, info) {
+  this.parent.constructor.call(this, elem, info);
   this.element = elem;
-}
+};
 
 /**
  * Enable/Disable a checkbox depending on the target state
@@ -413,10 +411,10 @@ MozMillCheckBox.prototype.check = function(state) {
 MozMillRadio.prototype = new MozMillElement();
 MozMillRadio.prototype.parent = MozMillElement.prototype;
 MozMillRadio.prototype.constructor = MozMillRadio;
-function MozMillRadio(elem) {
-  this.parent.constructor.call(this, elem);
+function MozMillRadio(elem, info) {
+  this.parent.constructor.call(this, elem, info);
   this.element = elem;
-}
+};
 
 /**
  * Select the given radio button
@@ -460,9 +458,10 @@ MozMillRadio.prototype.select = function()
 MozMillDropList.prototype = new MozMillElement();
 MozMillDropList.prototype.parent = MozMillElement.prototype;
 MozMillDropList.prototype.constructor = MozMillDropList;
-function MozMillDropList(elem) {
+function MozMillDropList(elem, info) {
+  this.parent.constructor.call(elem, info);
   this.element = elem;
-}
+};
 
 /* Select the specified option and trigger the relevant events of the element */
 MozMillDropList.prototype.select = function (indx, option, value) {

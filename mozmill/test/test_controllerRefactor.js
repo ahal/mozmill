@@ -1,6 +1,6 @@
 var setupModule = function(module) {
   module.controller = mozmill.getBrowserController();
-}
+};
 
 var testFoo = function(){
   controller.open('http://www.mozilla.org');
@@ -16,12 +16,12 @@ var testFoo = function(){
   textbox.type("mozmill");
   controller.sleep(1000);
   
-  button.click();
+  controller.click(button);
   controller.sleep(1000);
   
   var radio = elementslib.ID(controller.tabs.activeTab, "www");
   button = elementslib.XPath(controller.tabs.activeTab, "/html/body/div/table/tbody/tr/td/table/tbody/tr/td[2]/table/tbody/tr[2]/td/input[7]");
-
+  
   radio.select();
   
   button.keypress("VK_RETURN", {});
@@ -30,4 +30,4 @@ var testFoo = function(){
   var logo = elementslib.XPath(controller.tabs.activeTab, "/html/body/div/table/tbody/tr/td/table/tbody/tr/td/a/img");
   logo.click();
   controller.waitForPageLoad();
-}
+};
