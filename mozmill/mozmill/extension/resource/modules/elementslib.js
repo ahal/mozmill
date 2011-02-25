@@ -91,68 +91,83 @@ var smartSplit = function (str) {
     }
   }
   return split;
-}
+};
+
+function defaultDocuments() {
+  var windowManager = Components.classes['@mozilla.org/appshell/window-mediator;1'].getService(Components.interfaces.nsIWindowMediator);
+  win = windowManager.getMostRecentWindow("navigator:browser");
+  return [win.gBrowser.selectedBrowser.contentDocument, win.document];
+};
 
 function nodeSearch(doc, func, string) {
-    var win = doc.defaultView;
-    var e = null;
-    var element = null;
-    //inline function to recursively find the element in the DOM, cross frame.
-    var search = function(win, func, string) {
-     if (win == null)
-       return;
+  if (doc != undefined) {
+    var documents = [doc];
+  } else {
+    var documents = defaultDocuments();
+  }
+  var e = null;
+  var element = null;
+  //inline function to recursively find the element in the DOM, cross frame.
+  var search = function(win, func, string) {
+    if (win == null)
+      return;
 
-     //do the lookup in the current window
-     try {
-       element = func.call(win, string);
-     }
-     catch(err) { }
-     
-      if (!element || (element.length == 0)) {
-        var frames = win.frames;
-        for (var i=0; i < frames.length; i++) {
-          search(frames[i], func, string);
-        }
-     }
-     else { e = element; }
-    };
+    //do the lookup in the current window
+    try {
+      element = func.call(win, string);
+    }
+    catch(err) { }
     
+    if (!element || (element.length == 0)) {
+      var frames = win.frames;
+      for (var i=0; i < frames.length; i++) {
+        search(frames[i], func, string);
+      }
+    }
+    else { e = element; }
+  };
+  
+  for (var i = 0; i < documents.length; ++i) {
+    dump("DOCUMENT " + i + ": " + documents[i] + ", STRING: " + string + "\n");
+    var win = documents[i].defaultView;
     search(win, func, string);
-    
-    return e;
-}
+    if (e) break;
+  }
+  return e;
+};
 
 function Elem(node) {
   return mozElem.createInstance(node, "Elem instance.");
-}
+};
 
 
 function Selector(_document, selector) {
-  if (_document == undefined || selector == undefined) {
+  if (selector == undefined) {
     throw new Error('Selector constructor did not recieve enough arguments.');
   }
-  this._view = _document.defaultView;
+  this._view = _document == undefined ? _document : _document.defaultView;
   this.selector = selector;
   this.getNodeForDocument = function (s) {
     return this.document.querySelectorAll(s);
   };
   var nodes = nodeSearch(this._view.document, this.getNodeForDocument, this.selector);
   return mozElem.createInstance(nodes ? nodes[index || 0] : null, "Selector: " + this.selector);
-}
+};
 
 function ID(_document, nodeID) {
-  if (_document == undefined || nodeID == undefined) {
+  if (nodeID == undefined) {
     throw new Error('ID constructor did not recieve enough arguments.');
   }
-  return mozElem.createInstance(_document.getElementById(nodeID), "ID: " + nodeID);
-}
+  this.getNodeForDocument = function (nodeID) {
+    return this.document.getElementById(nodeID);
+  };
+  return mozElem.createInstance(nodeSearch(_document, this.getNodeForDocument, nodeID), "ID: " + nodeID);
+};
 
 function Link(_document, linkName) {
-  if (_document == undefined || linkName == undefined) {
+  if (linkName == undefined) {
     throw new Error('Link constructor did not recieve enough arguments.');
   }
-  this._view = _document.defaultView;
-  this.linkName = linkName;
   
   this.getNodeForDocument = function (linkName) {
     var getText = function(el){
@@ -192,16 +207,14 @@ function Link(_document, linkName) {
     return null;
   };
   
-  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.linkName), "Link: " + this.linkName);
+  return mozElem.createInstance(nodeSearch(_document, this.getNodeForDocument, linkName), "Link: " + linkName);
 }
 
 
 function XPath(_document, expr) {
-  if (_document == undefined || expr == undefined) {
+  if (expr == undefined) {
     throw new Error('XPath constructor did not recieve enough arguments.');
   }
-  this._view = _document.defaultView;
-  this.expr = expr;
   
   this.getNodeForDocument = function (s) {
     var aNode = this.document;
@@ -221,15 +234,13 @@ function XPath(_document, expr) {
       found.push(res);
     return found[0];
   };
-  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.expr), "XPath: " + expr);
+  return mozElem.createInstance(nodeSearch(_document, this.getNodeForDocument, expr), "XPath: " + expr);
 }
 
 function Name(_document, nName) {
-  if (_document == undefined || nName == undefined) {
+  if (nName == undefined) {
     throw new Error('Name constructor did not recieve enough arguments.');
   }
-  this._view = _document.defaultView;
-  this.nName = nName;
   this.getNodeForDocument = function (s) {
     try{
       var els = this.document.getElementsByName(s);
@@ -238,7 +249,7 @@ function Name(_document, nName) {
     catch(err){};
     return null;
   };
-  return mozElem.createInstance(nodeSearch(this._view.document, this.getNodeForDocument, this.nName), "Name: " + this.nName);
+  return mozElem.createInstance(nodeSearch(_document, this.getNodeForDocument, nName), "Name: " + nName);
 }
 
 
@@ -354,15 +365,12 @@ var _anonByIndex = function (_document, parent, i) {
 
 
 function Lookup (_document, expression) {
-  if (_document == undefined || expression == undefined) {
+  if (expression == undefined) {
     throw new Error('Lookup constructor did not recieve enough arguments.');
   }
-  this._view = _document.defaultView;
-  this.expression = expression;
 
-  var expSplit = [e for each (e in smartSplit(this.expression) ) if (e != '')];
-  expSplit.unshift(this._view.document)
-  _document = this._view.document;
+  var expSplit = [e for each (e in smartSplit(expression) ) if (e != '')];
+  expSplit.unshift(_document)
   var nCases = {'id':_byID, 'name':_byName, 'attrib':_byAttrib, 'index':_byIndex};
   var aCases = {'name':_anonByName, 'attrib':_anonByAttrib, 'index':_anonByIndex};
   
@@ -434,5 +442,5 @@ function Lookup (_document, expression) {
     // Maybe we should cause an exception here
     return false;
   };
-  return mozElem.createInstance(expSplit.reduce(reduceLookup), "Lookup: " + this.expression);
+  return mozElem.createInstance(expSplit.reduce(reduceLookup), "Lookup: " + expression);
 }
