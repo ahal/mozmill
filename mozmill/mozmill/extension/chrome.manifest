@@ -13,3 +13,6 @@ locale	mozmill	en-US	locale/en-US/
 
 skin	mozmill	classic/1.0	skin/
 style	chrome://global/content/customizeToolbar.xul	chrome://mozmill/skin/overlay.css
+
+interfaces components/mozmill.xpt
+binary-component components/libnative_events.so
