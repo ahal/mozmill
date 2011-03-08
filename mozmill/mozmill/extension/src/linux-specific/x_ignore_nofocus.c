@@ -22,7 +22,7 @@
 // Define this to prevent events from being faked.
 //#undef NO_FAKING
 
-#define DEBUG_PRINTOUTS
+//#define DEBUG_PRINTOUTS
 
 #ifdef DEBUG_PRINTOUTS
 FILE* g_out_stream = 0;

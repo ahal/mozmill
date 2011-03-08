@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef XP_WIN
+#ifdef _MSC_VER
 #include "stdafx.h"
 #endif
 #include "nsCOMPtr.h"

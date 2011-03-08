@@ -18,14 +18,14 @@ limitations under the License.
 #ifndef interactions_h
 #define interactions_h
 
-#ifdef XP_WIN
+#ifdef _MSC_VER
 #include "stdafx.h"
 #include "interaction_utils.h"
 #endif
 
 #include <wchar.h>
 
-#ifdef XP_WIN
+#ifdef _MSC_VER
 #define EXPORT __declspec(dllexport)
 #define WD_RESULT LRESULT
 #define BOOL_TYPE boolean
@@ -37,13 +37,23 @@ limitations under the License.
 
 #define WINDOW_HANDLE void*
 
+// definitions for mouse buttons
+// NOTE: These values correspond to GDK mouse button values.
+// If these values are changed, native events for linux *will* be broken
+// *unless* interactions_linux_mouse.cpp is updated.
+#define MOUSEBUTTON_LEFT (1)
+#define MOUSEBUTTON_MIDDLE (2)
+#define MOUSEBUTTON_RIGHT (3)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 // Keyboard interactions
 EXPORT void sendKeys(WINDOW_HANDLE windowHandle, const wchar_t* value, int timePerKey);
-EXPORT BOOL_TYPE pending_keyboard_events();
+EXPORT void sendKeyPress(WINDOW_HANDLE windowHandle, const wchar_t* value);
+EXPORT void sendKeyRelease(WINDOW_HANDLE windowHandle, const wchar_t* value);
+EXPORT BOOL_TYPE pending_input_events();
 
 // Mouse interactions
 EXPORT WD_RESULT clickAt(WINDOW_HANDLE directInputTo, long x, long y, long button);

@@ -1,3 +1,19 @@
+/*
+Copyright 2007-2010 WebDriver committers
+Copyright 2007-2010 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 #include <ctime>
 #include <string>
@@ -19,34 +35,12 @@
 #include <functional>
 
 #include "translate_keycode_linux.h"
+#include "interactions_linux.h"
 
 using namespace std;
-#define INTERACTIONS_DEBUG
 
-#define INTERACTIONS_LOG_FILE "/tmp/native_ff_events_log"
-
-// This is the timestamp needed in the GDK events.
-guint32 MouseTimeSinceBootMsec()
-{
-    struct timespec clk_tm;
-    const int msec_nsec_factor = 1000000;
-    const int sec_msec_factor = 1000;
-
-    int clk_ret = ::clock_gettime(CLOCK_MONOTONIC, &clk_tm);
-    if (clk_ret == 0)
-    {
-      return (clk_tm.tv_sec * sec_msec_factor +
-              (clk_tm.tv_nsec / msec_nsec_factor));
-    }
-    return 0;
-}
-
-// Definition of a mouse press, release events pair.
-typedef std::pair<GdkEvent*, GdkEvent*> MouseEventsPair;
 enum MouseEventType { bMousePress, bMouseRelease };
 // This class handles generation of mouse press / release events.
-// Events will be generated according to the given key to emulate
-// and state of modifier keys.
 class MouseEventsHandler
 {
 public:
@@ -75,7 +69,7 @@ private:
 };
 
 MouseEventsHandler::MouseEventsHandler(GdkDrawable* win_handle) :
-  win_handle_(win_handle), last_event_time_(MouseTimeSinceBootMsec())
+  win_handle_(win_handle), last_event_time_(TimeSinceBootMsec())
 {
 }
 
@@ -84,19 +78,35 @@ guint32 MouseEventsHandler::get_last_event_time()
   return last_event_time_;
 }
 
+GdkDevice* getSomeDevice()
+{
+  GList *pList = gdk_devices_list();
+  GList *currNode = pList;
+  GdkDevice *currDevice = NULL;
+  while ((currNode != NULL) && (currDevice == NULL)) {
+    currDevice = (GdkDevice*) currNode->data;
+    currNode = currNode->next;
+  }
+
+  return (GdkDevice*) g_object_ref(currDevice);
+}
 
 GdkEvent* MouseEventsHandler::CreateMouseMotionEvent(long x, long y)
 {
     GdkEvent* p_ev = gdk_event_new(GDK_MOTION_NOTIFY);
     p_ev->motion.window = GDK_WINDOW(g_object_ref(win_handle_));
     p_ev->motion.send_event = 0; // NOT a synthesized event.
-    p_ev->motion.time = MouseTimeSinceBootMsec();
+    p_ev->motion.time = TimeSinceBootMsec();
     p_ev->motion.x = x;
     p_ev->motion.y = y;
-	p_ev->motion.is_hint = 0;
+    p_ev->motion.axes = NULL;
+    p_ev->motion.is_hint = 0;
+    // It is necessary to provide a device. any device.
+    p_ev->motion.device = getSomeDevice();
+    //TODO: Support state of modifier keys.
 
-	// Also update the latest event time
-    last_event_time_ = p_ev->key.time;
+    // Also update the latest event time
+    last_event_time_ = p_ev->motion.time;
     return p_ev;
 }
 
@@ -110,32 +120,33 @@ GdkEvent* MouseEventsHandler::CreateMouseButtonEvent(MouseEventType ev_type, lon
     GdkEvent* p_ev = gdk_event_new(gdk_ev);
     p_ev->button.window = GDK_WINDOW(g_object_ref(win_handle_));
     p_ev->button.send_event = 0; // NOT a synthesized event.
-    p_ev->button.time = MouseTimeSinceBootMsec();
-	p_ev->button.x = x;
-	p_ev->button.y = y;
-	p_ev->button.button = button;
-	
-	// Also update the latest event time
-    last_event_time_ = p_ev->key.time;
+    p_ev->button.time = TimeSinceBootMsec();
+    p_ev->button.x = x;
+    p_ev->button.y = y;
+    p_ev->button.button = button;
+    p_ev->button.device = getSomeDevice();
+
+    // Also update the latest event time
+    last_event_time_ = p_ev->motion.time;
     return p_ev;
 }
 
 
 list<GdkEvent*> MouseEventsHandler::CreateEventsForMouseDown(long x, long y, long button)
 {
-	GdkEvent* down = CreateMouseButtonEvent(bMousePress, x, y, button);
-	list<GdkEvent*> ret_list;
-	ret_list.push_back(down);
-	return ret_list;
+  GdkEvent* down = CreateMouseButtonEvent(bMousePress, x, y, button);
+  list<GdkEvent*> ret_list;
+  ret_list.push_back(down);
+  return ret_list;
 }
 
 
 list<GdkEvent*> MouseEventsHandler::CreateEventsForMouseUp(long x, long y, long button)
 {
-	GdkEvent* up = CreateMouseButtonEvent(bMouseRelease, x, y, button);
-	list<GdkEvent*> ret_list;
-	ret_list.push_back(up);
-	return ret_list;
+  GdkEvent* up = CreateMouseButtonEvent(bMouseRelease, x, y, button);
+  list<GdkEvent*> ret_list;
+  ret_list.push_back(up);
+  return ret_list;
 }
 
 
@@ -143,19 +154,19 @@ list<GdkEvent*> MouseEventsHandler::CreateEventsForMouseClick(long x, long y, lo
 {
   GdkEvent* down = CreateMouseButtonEvent(bMousePress, x, y, button);
   GdkEvent* up = CreateMouseButtonEvent(bMouseRelease, x, y, button);
-  MouseEventsPair ev = std::make_pair(down, up);
+
   list<GdkEvent*> ret_list;
-  ret_list.push_back(ev.first);
-  ret_list.push_back(ev.second);
+  ret_list.push_back(down);
+  ret_list.push_back(up);
   return ret_list;
 }
 
 list<GdkEvent*> MouseEventsHandler::CreateEventsForMouseMove(long x, long y)
 {
-	GdkEvent* move = CreateMouseMotionEvent(x, y);
-	list<GdkEvent*> ret_list;
-	ret_list.push_back(move);
-	return ret_list;
+  GdkEvent* move = CreateMouseMotionEvent(x, y);
+  list<GdkEvent*> ret_list;
+  ret_list.push_back(move);
+  return ret_list;
 }
 
 MouseEventsHandler::~MouseEventsHandler()
@@ -173,20 +184,39 @@ static void sleep_for_ms(int sleep_time_ms)
 static void submit_and_free_event(GdkEvent* p_mouse_event, int sleep_time_ms)
 {
   gdk_event_put(p_mouse_event);
+  GdkDevice* usedDevice = NULL;
+  if (p_mouse_event->type == GDK_MOTION_NOTIFY) {
+    usedDevice = p_mouse_event->motion.device;
+  } else {
+    usedDevice = p_mouse_event->button.device;
+  }
+  g_object_unref(usedDevice);
   gdk_event_free(p_mouse_event);
   sleep_for_ms(sleep_time_ms);
 }
 
 static void print_mouse_event(GdkEvent* p_ev)
 {
-  if (!((p_ev->type == GDK_BUTTON_PRESS) || (p_ev->type == GDK_BUTTON_RELEASE))) {
+  if (!((p_ev->type == GDK_BUTTON_PRESS) || (p_ev->type == GDK_BUTTON_RELEASE)
+        || (p_ev->type == GDK_MOTION_NOTIFY))) {
     LOG(DEBUG) << "Not a mouse event.";
     return;
   }
 
-  std::string ev_type = (p_ev->type == GDK_BUTTON_PRESS ? "press" : "release");
+  std::string ev_type;
+  if (p_ev->type == GDK_BUTTON_PRESS) {
+    ev_type = "press";
+  };
+
+  if (p_ev->type == GDK_BUTTON_RELEASE) {
+    ev_type = "release";
+  };
+
+  if (p_ev->type == GDK_MOTION_NOTIFY) {
+    ev_type = "motion";
+  };
   LOG(DEBUG) << "Type: " << ev_type <<  " time: " <<
-             p_ev->key.time << " state: " << p_ev->key.state << " ";
+             p_ev->key.time;
 }
 
 static void submit_and_free_events_list(list<GdkEvent*>& events_list,
@@ -200,33 +230,11 @@ static void submit_and_free_events_list(list<GdkEvent*>& events_list,
     events_list.clear();
 }
 
-static bool is_gdk_mouse_event(GdkEvent* ev)
-{
-  return ((ev->type == GDK_BUTTON_PRESS) || (ev->type == GDK_BUTTON_RELEASE));
-}
-
-bool mouse_event_earlier_than(GdkEvent* ev, guint32 compare_time)
-{
-  assert(is_gdk_mouse_event(ev));
-  return (ev->key.time < compare_time);
-}
-
 extern "C"
 {
-static guint32 gLatestEventTime = 0;
-
-
 WD_RESULT clickAt(WINDOW_HANDLE windowHandle, long x, long y, long button)
 {
-#ifdef INTERACTIONS_DEBUG
-  static bool log_initalized = false;
-  if (!log_initalized) {
-    LOG::Level("DEBUG");
-    LOG::File(INTERACTIONS_LOG_FILE, "a");
-    log_initalized = true;
-  }
-#endif
-
+  init_logging();
   const int timePerEvent = 10 /* ms */;
 
   LOG(DEBUG) << "---------- starting clickAt: " << windowHandle <<  "---------";
@@ -257,15 +265,7 @@ WD_RESULT clickAt(WINDOW_HANDLE windowHandle, long x, long y, long button)
  */
 WD_RESULT mouseMoveTo(WINDOW_HANDLE windowHandle, long duration, long fromX, long fromY, long toX, long toY)
 {
-#ifdef INTERACTIONS_DEBUG
-  static bool log_initalized = false;
-  if (!log_initalized) {
-    LOG::Level("DEBUG");
-    LOG::File(INTERACTIONS_LOG_FILE, "a");
-    log_initalized = true;
-  }
-#endif
-
+  init_logging();
   const int timePerEvent = 10 /* ms */;
 
   LOG(DEBUG) << "---------- starting mouseMoveTo: " << windowHandle <<  "---------";
@@ -274,16 +274,14 @@ WD_RESULT mouseMoveTo(WINDOW_HANDLE windowHandle, long duration, long fromX, lon
   MouseEventsHandler mousep_handler(hwnd);
 
   int steps = 15;
-  int sleep = steps / duration;
-  
+
   for (int i = 0; i < steps; ++i) {
-	//To avoid integer division rounding and cumulative floating point errors,
-	//calculate from scratch each time
+    //To avoid integer division rounding and cumulative floating point errors,
+    //calculate from scratch each time
     int currentX = fromX + ((toX - fromX) * ((double)i) / steps);
-	int currentY = fromY + ((toY - fromY) * ((double)i) / steps);
+    int currentY = fromY + ((toY - fromY) * ((double)i) / steps);
     list<GdkEvent*> events_for_mouse = mousep_handler.CreateEventsForMouseMove(currentX, currentY);
     submit_and_free_events_list(events_for_mouse, timePerEvent);
-    sleep_for_ms(sleep);
   }
 
 
@@ -292,7 +290,7 @@ WD_RESULT mouseMoveTo(WINDOW_HANDLE windowHandle, long duration, long fromX, lon
     gLatestEventTime = mousep_handler.get_last_event_time();
   }
 
-  LOG(DEBUG) << "---------- Ending clickAt ----------";
+  LOG(DEBUG) << "---------- Ending mouseMoveTo ----------";
   return 0;
 }
 
@@ -301,18 +299,11 @@ WD_RESULT mouseMoveTo(WINDOW_HANDLE windowHandle, long duration, long fromX, lon
  */
 WD_RESULT mouseDownAt(WINDOW_HANDLE windowHandle, long x, long y, long button)
 {
-#ifdef INTERACTIONS_DEBUG
-  static bool log_initalized = false;
-  if (!log_initalized) {
-    LOG::Level("DEBUG");
-    LOG::File(INTERACTIONS_LOG_FILE, "a");
-    log_initalized = true;
-  }
-#endif
+  init_logging();
 
   const int timePerEvent = 10 /* ms */;
 
-  LOG(DEBUG) << "---------- starting clickAt: " << windowHandle <<  "---------";
+  LOG(DEBUG) << "---------- starting mouseDownAt: " << windowHandle <<  "---------";
   GdkDrawable* hwnd = (GdkDrawable*) windowHandle;
 
   MouseEventsHandler mousep_handler(hwnd);
@@ -331,7 +322,7 @@ WD_RESULT mouseDownAt(WINDOW_HANDLE windowHandle, long x, long y, long button)
     gLatestEventTime = mousep_handler.get_last_event_time();
   }
 
-  LOG(DEBUG) << "---------- Ending clickAt ----------";
+  LOG(DEBUG) << "---------- Ending mouseDownAt ----------";
   return 0;
 }
 
@@ -340,18 +331,11 @@ WD_RESULT mouseDownAt(WINDOW_HANDLE windowHandle, long x, long y, long button)
  */
 WD_RESULT mouseUpAt(WINDOW_HANDLE windowHandle, long x, long y, long button)
 {
-  #ifdef INTERACTIONS_DEBUG
-  static bool log_initalized = false;
-  if (!log_initalized) {
-    LOG::Level("DEBUG");
-    LOG::File(INTERACTIONS_LOG_FILE, "a");
-    log_initalized = true;
-  }
-#endif
+  init_logging();
 
   const int timePerEvent = 10 /* ms */;
 
-  LOG(DEBUG) << "---------- starting clickAt: " << windowHandle <<  "---------";
+  LOG(DEBUG) << "---------- starting mouseUpAt: " << windowHandle <<  "---------";
   GdkDrawable* hwnd = (GdkDrawable*) windowHandle;
 
   MouseEventsHandler mousep_handler(hwnd);
@@ -370,12 +354,30 @@ WD_RESULT mouseUpAt(WINDOW_HANDLE windowHandle, long x, long y, long button)
     gLatestEventTime = mousep_handler.get_last_event_time();
   }
 
-  LOG(DEBUG) << "---------- Ending clickAt ----------";
+  LOG(DEBUG) << "---------- Ending mouseUpAt ----------";
   return 0;
 }
 
+bool pending_mouse_events()
+{
+  init_logging();
+  LOG(DEBUG) << "Waiting for all events to be processed";
+  GdkEvent* lastEvent = gdk_event_peek();
+  LOG(DEBUG) << "Got event: " <<
+             (lastEvent != NULL ? lastEvent->type : 0);
 
+  bool ret_val = false;
+  if (lastEvent != NULL && is_gdk_mouse_event(lastEvent) &&
+         event_earlier_than(lastEvent, gLatestEventTime)) {
+    ret_val = true;
+  }
+
+  if (lastEvent != NULL) {
+    gdk_event_free(lastEvent);
+  }
+  LOG(DEBUG) << "Returning: " << ret_val;
+
+  return ret_val;
 }
 
-#undef INTERACTIONS_LOG_FILE
-
+} // extern C

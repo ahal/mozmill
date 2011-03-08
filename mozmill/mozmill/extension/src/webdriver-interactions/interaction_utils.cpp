@@ -16,8 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifdef XP_WIN
-
 #include "stdafx.h"
 #include "interaction_utils.h"
 
@@ -60,5 +58,3 @@ HWND getChildWindow(HWND hwnd, LPCTSTR name)
 	}
 	return NULL;
 }
-
-#endif

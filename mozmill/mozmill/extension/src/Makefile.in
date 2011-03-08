@@ -57,6 +57,7 @@ REQUIRES		= xpcom \
 
 CPPSRCS		= \
 		webdriver-firefox/native_events.cpp \
+		webdriver-firefox/library_loading.cpp \
 		$(NULL)
 
 ifeq ($(MOZ_WIDGET_TOOLKIT),windows)
@@ -65,6 +66,7 @@ CPPSRCS   += webdriver-interactions/interactions.cpp \
 else
 ifeq ($(MOZ_WIDGET_TOOLKIT),gtk2)
 CPPSRCS   += webdriver-interactions/interactions_linux.cpp \
+             webdriver-interactions/interactions_linux_common.cpp \
              webdriver-interactions/interactions_linux_mouse.cpp \
              webdriver-interactions/translate_keycode_linux.cpp
 endif # gtk2
