@@ -2,9 +2,9 @@
 #ifdef BUILD_ON_UNIX
 #include <xpcom-config.h>
 #endif
-#include "errorcodes.h"
-#include "interactions.h"
-#include "logging.h"
+#include "../webdriver-interactions/errorcodes.h"
+#include "../webdriver-interactions/interactions.h"
+#include "../webdriver-interactions/logging.h"
 #include "native_events.h"
 #include "library_loading.h"
 #include "nsIGenericFactory.h"

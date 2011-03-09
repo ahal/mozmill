@@ -6,7 +6,7 @@
 #endif
 
 #include "library_loading.h"
-#include "logging.h"
+#include "../webdriver-interactions/logging.h"
 
 #ifdef BUILD_ON_UNIX
 IMELIB_TYPE tryToOpenImeLib() {
