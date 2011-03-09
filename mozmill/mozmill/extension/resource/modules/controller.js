@@ -46,6 +46,7 @@ var events = {}; Components.utils.import('resource://mozmill/modules/events.js',
 var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
 var elementslib = {}; Components.utils.import('resource://mozmill/modules/elementslib.js', elementslib);
 var frame = {}; Components.utils.import('resource://mozmill/modules/frame.js', frame);
+var webdriver = {}; Components.utils.import('resource://mozmill/modules/nativeEvents.js', webdriver);
 
 var hwindow = Components.classes["@mozilla.org/appshell/appShellService;1"]
                 .getService(Components.interfaces.nsIAppShellService)
@@ -486,17 +487,28 @@ MozMillController.prototype.mouseEvent = function(aTarget, aOffsetX, aOffsetY,
 /**
  * Synthesize a mouse click event on the given element
  */
-MozMillController.prototype.click = function(elem, left, top, expectedEvent) {
+MozMillController.prototype.click = function(elem, left, top, expectedEvent, useNative) {
   var element = elem.getNode()
 
-  // Handle menu items differently
-  if (element && element.tagName == "menuitem") {
-    element.click();
+  if (useNative) {
+    try {
+      frame.log({'function':'controller.click()', 'message':'Using native events'});
+      webdriver.events.synthesizeMouse(element, left, top, {});
+    }
+    catch(e){
+      frame.log({'function':'controller.click()', 'message':'Couldn\'t load native events, falling back to normal events: ' + String(e)});
+      EventUtils.synthesizeMouse(element, left, top, {}, element.ownerDocument.defaultView);
+    }
   } else {
-    this.mouseEvent(elem, left, top, {}, expectedEvent);
-  }
+    // Handle menu items differently
+    if (element && element.tagName == "menuitem") {
+      element.click();
+    } else {
+      this.mouseEvent(elem, left, top, {}, expectedEvent);
+    }
 
-  frame.events.pass({'function':'controller.click()'});
+    frame.events.pass({'function':'controller.click()'});
+  }
 }
 
 /**

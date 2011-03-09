@@ -11,7 +11,7 @@
 # for the specific language governing rights and limitations under the
 # License.
 #
-# The Original Code is Grafx Bot.
+# The Original Code is Mozmill Webdriver.
 #
 # The Initial Developer of the Original Code is Mozilla.
 # Portions created by the Initial Developer are Copyright (C) 2010
@@ -34,15 +34,15 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH		= ../../../..
+DEPTH		= ../../..
 topsrcdir	= @top_srcdir@
 srcdir		= @srcdir@
 VPATH		= @srcdir@
 
 include $(DEPTH)/config/autoconf.mk
 
-MODULE		= webdriver
-XPI_NAME	= webdriver
+MODULE		= mozmill
+XPI_NAME	= mozmill-wd
 
 XPIDLSRCS	= \
 		nsINativeEvents.idl \
