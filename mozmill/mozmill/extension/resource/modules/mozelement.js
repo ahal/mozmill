@@ -150,7 +150,21 @@ MozMillElement.prototype.__defineGetter__("element", function() {
 });
 
 MozMillElement.prototype.getNode = function() {
-  return this._element;
+  return this.element;
+};
+
+MozMillElement.prototype.getInfo = function() {
+  return this._locatorType + ": " + this._locator;
+};
+
+/**
+ * Sometimes an element which once existed will no longer exist in the DOM
+ * This function re-searches for the element
+ */
+MozMillElement.prototype.exists = function() {
+  this._element = undefined;
+  if (this.element) return true;
+  return false;
 };
 
 /**
@@ -372,16 +386,14 @@ MozMillElement.prototype.rightClick = function(left, top, expectedEvent) {
   return true;
 };
 
-MozMillElement.prototype.waitFor = function(callback, message, timeout,
-                                               interval, thisObject) {
+MozMillElement.prototype.waitFor = function(callback, message, timeout, interval, thisObject) {
   utils.waitFor(callback, message, timeout, interval, thisObject);
-
   frame.events.pass({'function':'controller.waitFor()'});
 };
 
 MozMillElement.prototype.waitForElement = function(timeout, interval) {
   this.waitFor(function() {
-    return this.element.exists();
+    return this.exists();
   }, "Timeout exceeded for waitForElement " + this.getInfo(), timeout, interval);
 
   frame.events.pass({'function':'Controller.waitForElement()'});
@@ -389,7 +401,7 @@ MozMillElement.prototype.waitForElement = function(timeout, interval) {
 
 MozMillElement.prototype.waitForElementNotPresent = function(timeout, interval) {
   this.waitFor(function() {
-    return !this.element.exists();
+    return !this.exists();
   }, "Timeout exceeded for waitForElementNotPresent " + this.getInfo(), timeout, interval);
 
   frame.events.pass({'function':'Controller.waitForElementNotPresent()'});
@@ -404,16 +416,6 @@ MozMillElement.prototype.__defineGetter__("waitForEvents", function() {
 MozMillElement.prototype.waitThenClick = function (timeout, interval) {
   this.waitForElement(timeout, interval);
   this.click();
-};
-
-MozMillElement.prototype.getInfo = function() {
-  return this._locatorType + ": " + this._locator;
-};
-
-// Used to maintain backwards compatibility with controller.js
-MozMillElement.prototype.exists = function() {
-  if (this.element) return true;
-  return false;
 };
 
 
@@ -539,18 +541,18 @@ MozMillDropList.prototype.select = function (indx, option, value) {
         this.element.selectedIndex = indx;
         events.triggerEvent(this.element, 'change', true);
 
-     frame.events.pass({'function':'Controller.select()'});
-     return true;
+        frame.events.pass({'function':'Controller.select()'});
+        return true;
       } else {
         item = this.element.options.item(indx);
-    }
+      }
     } else {
       for (var i = 0; i < this.element.options.length; i++) {
         var entry = this.element.options.item(i);
         if (option != undefined && entry.innerHTML == option ||
             value != undefined && entry.value == value) {
           item = entry;
-         break;
+          break;
         }
       }
     }
@@ -569,29 +571,30 @@ MozMillDropList.prototype.select = function (indx, option, value) {
       return false;
     }
   }
-  //if we have a xul menulist select accordingly
-  else if (this.element.localName.toLowerCase() == "menulist"){
-    var ownerDoc = this.element.ownerDocument;
+  //if we have a xul menupopup select accordingly
+  else if (element.namespaceURI.toLowerCase() == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul") {
+    var ownerDoc = element.ownerDocument;
     // Unwrap the XUL element's XPCNativeWrapper
-    if (this.element.namespaceURI.toLowerCase() == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul") {
-      this.element = utils.unwrapNode(this.element);
-    }
+    element = utils.unwrapNode(element);
+    // Get the list of menuitems
+    menuitems = element.getElementsByTagName("menupopup")[0].getElementsByTagName("menuitem");
+    
     var item = null;
 
     if (indx != undefined) {
       if (indx == -1) {
-        events.triggerEvent(this.element, 'focus', false);
-        this.element.selectedIndex = indx;
-        events.triggerEvent(this.element, 'change', true);
+        events.triggerEvent(element, 'focus', false);
+        element.boxObject.QueryInterface(Components.interfaces.nsIMenuBoxObject).activeChild = null;
+        events.triggerEvent(element, 'change', true);
 
         frame.events.pass({'function':'Controller.select()'});
         return true;
       } else {
-        item = this.element.getItemAtIndex(indx);
+        item = menuitems[indx];
       }
     } else {
-      for (var i = 0; i < this.element.itemCount; i++) {
-        var entry = this.element.getItemAtIndex(i);
+      for (var i = 0; i < menuitems.length; i++) {
+        var entry = menuitems[i];
         if (option != undefined && entry.label == option ||
             value != undefined && entry.value == value) {
           item = entry;
@@ -602,24 +605,25 @@ MozMillDropList.prototype.select = function (indx, option, value) {
 
     // Click the item
     try {
-      EventUtils.synthesizeMouse(this.element, 1, 1, {}, ownerDoc.defaultView);
+      EventUtils.synthesizeMouse(element, 1, 1, {}, ownerDoc.defaultView);
+      this.sleep(0);
 
       // Scroll down until item is visible
-      for (var i = s = this.element.selectedIndex; i <= this.element.itemCount + s; ++i) {
-        var entry = this.element.getItemAtIndex((i + 1) % this.element.itemCount);
-        EventUtils.synthesizeKey("VK_DOWN", {}, ownerDoc.defaultView);
-        if (entry.label == item.label) {
+      for (var i = 0; i <= menuitems.length; ++i) {
+        var selected = element.boxObject.QueryInterface(Components.interfaces.nsIMenuBoxObject).activeChild;
+        if (item == selected) {
           break;
         }
-        else if (entry.label == "") i += 1;
+        EventUtils.synthesizeKey("VK_DOWN", {}, ownerDoc.defaultView);
       }
 
       EventUtils.synthesizeMouse(item, 1, 1, {}, ownerDoc.defaultView);
+      this.sleep(0);
 
       frame.events.pass({'function':'Controller.select()'});
       return true;
     } catch (ex) {
-      throw new Error('No item selected for element ' + this.getInfo());
+      throw new Error('No item selected for element ' + el.getInfo());
       return false;
     }
   }
