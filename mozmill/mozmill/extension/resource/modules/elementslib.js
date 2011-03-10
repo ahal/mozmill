@@ -41,7 +41,6 @@ var EXPORTED_SYMBOLS = ["Elem", "ID", "Link", "XPath", "Selector", "Name", "Anon
                        ];
 
 var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
-var mozElem = {}; Components.utils.import('resource://mozmill/modules/mozelement.js', mozElem);
 var strings = {}; Components.utils.import('resource://mozmill/stdlib/strings.js', strings);
 var arrays = {}; Components.utils.import('resource://mozmill/stdlib/arrays.js', arrays);
 var json2 = {}; Components.utils.import('resource://mozmill/stdlib/json2.js', json2);
@@ -62,7 +61,7 @@ var countQuotes = function(str){
     }
   }
   return count;
-}
+};
 var smartSplit = function (str) {
   // Ensure we have an even number of quotes
   if (countQuotes(str) % 2 != 0) {
@@ -108,10 +107,7 @@ function nodeSearch(doc, func, string) {
       return;
 
     //do the lookup in the current window
-    try {
-      element = func.call(win, string);
-    }
-    catch(err) { }
+    element = func.call(win, string);
     
     if (!element || (element.length == 0)) {
       var frames = win.frames;
@@ -131,11 +127,6 @@ function nodeSearch(doc, func, string) {
   return e;
 };
 
-function Elem(node) {
-  return mozElem.createInstance(node, "Elem instance.");
-};
-
-
 function Selector(_document, selector) {
   if (selector == undefined) {
     throw new Error('Selector constructor did not recieve enough arguments.');
@@ -146,7 +137,7 @@ function Selector(_document, selector) {
     return this.document.querySelectorAll(s);
   };
   var nodes = nodeSearch(this._view.document, this.getNodeForDocument, this.selector);
-  return mozElem.createInstance(nodes ? nodes[index || 0] : null, "Selector: " + this.selector);
+  return nodes ? nodes[index || 0] : null;
 };
 
 function ID(_document, nodeID) {
@@ -156,7 +147,7 @@ function ID(_document, nodeID) {
   this.getNodeForDocument = function (nodeID) {
     return this.document.getElementById(nodeID);
   };
-  return mozElem.createInstance(nodeSearch(_document, this.getNodeForDocument, nodeID), "ID: " + nodeID);
+  return nodeSearch(_document, this.getNodeForDocument, nodeID);
 };
 
 function Link(_document, linkName) {
@@ -202,8 +193,8 @@ function Link(_document, linkName) {
     return null;
   };
   
-  return mozElem.createInstance(nodeSearch(_document, this.getNodeForDocument, linkName), "Link: " + linkName);
-}
+  return nodeSearch(_document, this.getNodeForDocument, linkName);
+};
 
 
 function XPath(_document, expr) {
@@ -229,8 +220,8 @@ function XPath(_document, expr) {
       found.push(res);
     return found[0];
   };
-  return mozElem.createInstance(nodeSearch(_document, this.getNodeForDocument, expr), "XPath: " + expr);
-}
+  return nodeSearch(_document, this.getNodeForDocument, expr);
+};
 
 function Name(_document, nName) {
   if (nName == undefined) {
@@ -244,8 +235,8 @@ function Name(_document, nName) {
     catch(err){};
     return null;
   };
-  return mozElem.createInstance(nodeSearch(_document, this.getNodeForDocument, nName), "Name: " + nName);
-}
+  return nodeSearch(_document, this.getNodeForDocument, nName);
+};
 
 
 var _returnResult = function (results) {
@@ -306,8 +297,6 @@ var _byAttrib = function (parent, attributes) {
     if (requirementPass == requirementLength) {
       results.push(n);
     }
-  }
-  if (results.length == 0) {
   }
   return _returnResult(results)
 }
@@ -437,5 +426,5 @@ function Lookup (_document, expression) {
     // Maybe we should cause an exception here
     return false;
   };
-  return mozElem.createInstance(expSplit.reduce(reduceLookup), "Lookup: " + expression);
-}
+  return expSplit.reduce(reduceLookup);
+};

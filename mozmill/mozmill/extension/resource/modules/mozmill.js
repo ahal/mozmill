@@ -54,7 +54,6 @@ var elementslib = {}; Components.utils.import('resource://mozmill/modules/elemen
 var frame = {}; Components.utils.import('resource://mozmill/modules/frame.js', frame);
 
 var os = {}; Components.utils.import('resource://mozmill/stdlib/os.js', os);
-var withs = {}; Components.utils.import('resource://mozmill/stdlib/withs.js', withs);
 
 var platform = os.getPlatform();
 
@@ -151,7 +150,6 @@ function getPreferencesController() {
   } else {
     utils.getMethodInWindows('openPreferences')();
   }
-  // utils.sleep(1000)
   return new controller.MozMillController(wm.getMostRecentWindow(''));
 }
 

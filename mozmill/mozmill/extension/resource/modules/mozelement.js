@@ -37,50 +37,120 @@
 //
 // ***** END LICENSE BLOCK *****
 
-var EXPORTED_SYMBOLS = ["createInstance"];
+var EXPORTED_SYMBOLS = ["byElem", "bySelector", "byID", "byLink", "byXPath",
+                        "byName", "byLookup", "MozMillElement",
+                       ];
 
 var EventUtils = {}; Components.utils.import('resource://mozmill/stdlib/EventUtils.js', EventUtils);
 var events = {}; Components.utils.import('resource://mozmill/modules/events.js', events);
 var frame = {}; Components.utils.import('resource://mozmill/modules/frame.js', frame);
 var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
+var elementslib = {}; Components.utils.import('resource://mozmill/modules/elementslib.js', elementslib);
 
-var waitFor = utils.waitFor;
-
-var createInstance = function (elem, info) {
+/**
+ * createInstance()
+ *
+ * Returns an new instance of a MozMillElement
+ * The type of the element is automatically determined
+ */
+var createInstance = function (locatorType, locator, elem) {
   switch(elem.localName.toLowerCase()) {
     case 'select':
     case 'menulist':
-      return new MozMillDropList(elem, info);
+      return new MozMillDropList(locatorType, locator, {"element":elem});
     case 'input':
       var type = elem.getAttribute('type');
       if (type === 'checkbox') {
-        return new MozMillCheckBox(elem, info);
+        return new MozMillCheckBox(locatorType, locator, {"element":elem});
       } else if (type === 'radio') {
-        return new MozMillRadio(elem, info);
+        return new MozMillRadio(locatorType, locator, {"element":elem});
       }
       break;
     case 'checkbox':
-      return new MozMillCheckBox(elem, info);
+      return new MozMillCheckBox(locatorType, locator, {"element":elem});
     case 'radio':
-      return new MozMillRadio(elem, info);
+      return new MozMillRadio(locatorType, locator, {"element":elem});
     default:
   }
-  return new MozMillElement(elem, info);
+  return new MozMillElement(locatorType, locator, {"element":elem});
 };
+
+var byElem = function(node) {
+  return createInstance("Elem", node, node);
+};
+
+var bySelector = function(_document, selector) {
+  return createInstance("Selector", selector, elementslib.Selector(_document, selector));
+};
+
+var byID = function(_document, nodeID) {
+  return createInstance("ID", nodeID, elementslib.ID(_document, nodeID));
+};
+
+var byLink = function(_document, linkName) {
+  return createInstance("Link", linkName, elementslib.Link(_document, linkName));
+};
+
+var byXPath = function(_document, expr) {
+  return createInstance("XPath", expr, elementslib.XPath(_document, expr));
+};
+
+var byName = function(_document, nName) {
+  return createInstance("Name", nName, elementslib.Name(_document, nName));
+};
+
+var byLookup = function(_document, expression) {
+  return createInstance("Lookup", expression, elementslib.Lookup(_document, expression));
+};
+
 
 /**
  * MozMillElement
  * The base class for all mozmill elements
  */
-function MozMillElement(elem, info) {
-  this.element = elem;
-  this.info = info;
+function MozMillElement(locatorType, locator, args) {
+  args = args || {};
+  this._locatorType = locatorType;
+  this._locator = locator;
+  this._element = args["element"];
+  this._document = args["document"];
   // Used to maintain backwards compatibility with controller.js
   this.isElement = true;
-}; 
+};
+
+MozMillElement.prototype.__defineGetter__("element", function() {
+  if (this._element == undefined) {
+    switch(this.locatorType) {
+      case "Elem":
+        this._element = this.locator;
+        break;
+      case "Selector":
+        this._element = elementslib.Selector(this._document, this.locator);
+        break;
+      case "ID":
+        this._element = elementslib.ID(this._document, this.locator);
+        break;
+      case "Link":
+        this._element = elementslib.Link(this._document, this.locator);
+        break;
+      case "XPath":
+        this._element = elementslib.XPath(this._document, this.locator);
+        break;
+      case "Name":
+        this._element = elementslib.Name(this._document, this.locator);
+        break;
+      case "Lookup":
+        this._element = elementslib.Lookup(this._document, this.locator);
+        break;
+      default:
+        throw new Error("Unknown locator type: " + this.locatorType);
+    }
+  }
+  return this._element;
+});
 
 MozMillElement.prototype.getNode = function() {
-  return this.element;
+  return this._element;
 };
 
 /**
@@ -325,14 +395,6 @@ MozMillElement.prototype.waitForElementNotPresent = function(timeout, interval) 
   frame.events.pass({'function':'Controller.waitForElementNotPresent()'});
 };
 
-MozMillElement.prototype.waitForImage = function (timeout, interval) {
-  this.waitFor(function() {
-    return this.element.complete == true;
-  }, "timeout exceeded for waitForImage " + this.getInfo(), timeout, interval);
-
-  frame.events.pass({'function':'Controller.waitForImage()'});
-};
-
 MozMillElement.prototype.__defineGetter__("waitForEvents", function() {
   if (this._waitForEvents == undefined)
     this._waitForEvents = new waitForEvents();
@@ -345,7 +407,7 @@ MozMillElement.prototype.waitThenClick = function (timeout, interval) {
 };
 
 MozMillElement.prototype.getInfo = function() {
-  return this.info;
+  return this.locatorType + ": " + this.locator;
 };
 
 // Used to maintain backwards compatibility with controller.js
@@ -365,9 +427,9 @@ MozMillElement.prototype.exists = function() {
 MozMillCheckBox.prototype = new MozMillElement();
 MozMillCheckBox.prototype.parent = MozMillElement.prototype;
 MozMillCheckBox.prototype.constructor = MozMillCheckBox;
-function MozMillCheckBox(elem, info) {
-  this.parent.constructor.call(this, elem, info);
-  this.element = elem;
+function MozMillCheckBox(locatorType, locator, args) {
+  this.parent.constructor.call(this, locatorType, locator, args);
+  this.element = this.getElement;
 };
 
 /**
@@ -388,7 +450,7 @@ MozMillCheckBox.prototype.check = function(state) {
 
   state = (typeof(state) == "boolean") ? state : false;
   if (state != this.element.checked) {
-    this.parent.click.call(this);
+    this.click();
     var element = this.element;
     utils.waitFor(function() {
       return element.checked == state;
@@ -411,9 +473,8 @@ MozMillCheckBox.prototype.check = function(state) {
 MozMillRadio.prototype = new MozMillElement();
 MozMillRadio.prototype.parent = MozMillElement.prototype;
 MozMillRadio.prototype.constructor = MozMillRadio;
-function MozMillRadio(elem, info) {
-  this.parent.constructor.call(this, elem, info);
-  this.element = elem;
+function MozMillRadio(locatorType, locator, args) {
+  this.parent.constructor.call(this, locatorType, locator, args);
 };
 
 /**
@@ -430,9 +491,7 @@ MozMillRadio.prototype.select = function()
     this.element = utils.unwrapNode(this.element);
   }
 
-  this.parent.click.call(this);
-  
-  utils.sleep(5000);
+  this.click();
   
   var element = this.element;
   utils.waitFor(function() {
@@ -458,9 +517,8 @@ MozMillRadio.prototype.select = function()
 MozMillDropList.prototype = new MozMillElement();
 MozMillDropList.prototype.parent = MozMillElement.prototype;
 MozMillDropList.prototype.constructor = MozMillDropList;
-function MozMillDropList(elem, info) {
-  this.parent.constructor.call(elem, info);
-  this.element = elem;
+function MozMillDropList(locatorType, locator, args) {
+  this.parent.constructor.call(locatorType, locator, args);
 };
 
 /* Select the specified option and trigger the relevant events of the element */

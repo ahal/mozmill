@@ -67,7 +67,7 @@ arrayRemove = function(array, from, to) {
   return array.push.apply(array, rest);
 };
 
-mozmill = undefined; elementslib = undefined;
+mozmill = undefined; elementslib = undefined; getElement = undefined;
 
 var loadTestResources = function () {
   if (mozmill == undefined) {
@@ -77,6 +77,10 @@ var loadTestResources = function () {
   if (elementslib == undefined) {
     elementslib = {};
     Components.utils.import("resource://mozmill/modules/elementslib.js", elementslib);
+  }
+  if (getElement == undefined) {
+    getElement = {};
+    Components.utils.import("resource://mozmill/modules/mozelement.js", getElement);
   }
 }
 
@@ -91,6 +95,8 @@ var loadFile = function(path, collector) {
   loadTestResources();
   module.mozmill = mozmill;
   module.elementslib = elementslib;
+  module.getElement = getElement;
+  module.MozMillElement = getElement.MozMillElement;
   module.persisted = persisted;
   module.Cc = Components.classes;
   module.Ci = Components.interfaces;
@@ -103,6 +109,8 @@ var loadFile = function(path, collector) {
       defaultPrincipal: "system",
       globals : { mozmill: mozmill,
                   elementslib: elementslib,
+                  getElement: getElement,
+                  MozMillElement: getElement.MozMillElement,
                   persisted: persisted,
                   Cc: Components.classes,
                   Ci: Components.interfaces,
