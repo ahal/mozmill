@@ -37,8 +37,8 @@
 //
 // ***** END LICENSE BLOCK *****
 
-var EXPORTED_SYMBOLS = ["byElem", "bySelector", "byID", "byLink", "byXPath",
-                        "byName", "byLookup", "MozMillElement",
+var EXPORTED_SYMBOLS = ["Elem", "Selector", "ID", "Link", "XPath", "Name", "Lookup", 
+                        "MozMillElement", "MozMillCheckBox", "MozMillRadio", "MozMillDropList",
                        ];
 
 var EventUtils = {}; Components.utils.import('resource://mozmill/stdlib/EventUtils.js', EventUtils);
@@ -75,31 +75,31 @@ var createInstance = function (locatorType, locator, elem) {
   return new MozMillElement(locatorType, locator, {"element":elem});
 };
 
-var byElem = function(node) {
+var Elem = function(node) {
   return createInstance("Elem", node, node);
 };
 
-var bySelector = function(_document, selector) {
+var Selector = function(_document, selector) {
   return createInstance("Selector", selector, elementslib.Selector(_document, selector));
 };
 
-var byID = function(_document, nodeID) {
+var ID = function(_document, nodeID) {
   return createInstance("ID", nodeID, elementslib.ID(_document, nodeID));
 };
 
-var byLink = function(_document, linkName) {
+var Link = function(_document, linkName) {
   return createInstance("Link", linkName, elementslib.Link(_document, linkName));
 };
 
-var byXPath = function(_document, expr) {
+var XPath = function(_document, expr) {
   return createInstance("XPath", expr, elementslib.XPath(_document, expr));
 };
 
-var byName = function(_document, nName) {
+var Name = function(_document, nName) {
   return createInstance("Name", nName, elementslib.Name(_document, nName));
 };
 
-var byLookup = function(_document, expression) {
+var Lookup = function(_document, expression) {
   return createInstance("Lookup", expression, elementslib.Lookup(_document, expression));
 };
 
@@ -198,7 +198,7 @@ MozMillElement.prototype.keypress = function(aKey, aModifiers, aExpectedEvent) {
 
   events.triggerKeyEvent(this.element, 'keypress', aKey, aModifiers, aExpectedEvent);
 
-  frame.events.pass({'function':'Controller.keypress()'});
+  frame.events.pass({'function':'MozMillElement.keypress()'});
   return true;
 };
 
@@ -224,7 +224,7 @@ MozMillElement.prototype.type = function (aText, aExpectedEvent) {
     events.triggerKeyEvent(this.element, 'keypress', letter, {}, aExpectedEvent);
   }
 
-  frame.events.pass({'function':'Controller.type()'});
+  frame.events.pass({'function':'MozMillElement.type()'});
   return true;
 };
 
@@ -294,7 +294,7 @@ MozMillElement.prototype.mouseEvent = function(aOffsetX, aOffsetY, aEvent, aExpe
 
     EventUtils.synthesizeMouseExpectEvent(this.element, aOffsetX, aOffsetY, aEvent,
                                           target, aExpectedEvent.event,
-                                          "controller.mouseEvent()",
+                                          "MozMillElement.mouseEvent()",
                                           this.element.ownerDocument.defaultView);
   } else {
     EventUtils.synthesizeMouse(this.element, aOffsetX, aOffsetY, aEvent,
@@ -313,7 +313,7 @@ MozMillElement.prototype.click = function(left, top, expectedEvent) {
     this.mouseEvent(left, top, {}, expectedEvent);
   }
 
-  frame.events.pass({'function':'controller.click()'});
+  frame.events.pass({'function':'MozMillElement.click()'});
 };
 
 /**
@@ -322,7 +322,7 @@ MozMillElement.prototype.click = function(left, top, expectedEvent) {
 MozMillElement.prototype.doubleClick = function(left, top, expectedEvent) {
   this.mouseEvent(left, top, {clickCount: 2}, expectedEvent);
 
-  frame.events.pass({'function':'controller.doubleClick()'});
+  frame.events.pass({'function':'MozMillElement.doubleClick()'});
   return true;
 };
 
@@ -332,7 +332,7 @@ MozMillElement.prototype.doubleClick = function(left, top, expectedEvent) {
 MozMillElement.prototype.mouseDown = function (button, left, top, expectedEvent) {
   this.mouseEvent(left, top, {button: button, type: "mousedown"}, expectedEvent);
 
-  frame.events.pass({'function':'controller.mouseDown()'});
+  frame.events.pass({'function':'MozMillElement.mouseDown()'});
   return true;
 };
 
@@ -342,7 +342,7 @@ MozMillElement.prototype.mouseDown = function (button, left, top, expectedEvent)
 MozMillElement.prototype.mouseOut = function (button, left, top, expectedEvent) {
   this.mouseEvent(left, top, {button: button, type: "mouseout"}, expectedEvent);
 
-  frame.events.pass({'function':'controller.mouseOut()'});
+  frame.events.pass({'function':'MozMillElement.mouseOut()'});
   return true;
 };
 
@@ -352,7 +352,7 @@ MozMillElement.prototype.mouseOut = function (button, left, top, expectedEvent) 
 MozMillElement.prototype.mouseOver = function (button, left, top, expectedEvent) {
   this.mouseEvent(left, top, {button: button, type: "mouseover"}, expectedEvent);
 
-  frame.events.pass({'function':'controller.mouseOver()'});
+  frame.events.pass({'function':'MozMillElement.mouseOver()'});
   return true;
 };
 
@@ -362,7 +362,7 @@ MozMillElement.prototype.mouseOver = function (button, left, top, expectedEvent)
 MozMillElement.prototype.mouseUp = function (button, left, top, expectedEvent) {
   this.mouseEvent(left, top, {button: button, type: "mouseup"}, expectedEvent);
 
-  frame.events.pass({'function':'controller.mouseUp()'});
+  frame.events.pass({'function':'MozMillElement.mouseUp()'});
   return true;
 };
 
@@ -372,7 +372,7 @@ MozMillElement.prototype.mouseUp = function (button, left, top, expectedEvent) {
 MozMillElement.prototype.middleClick = function(left, top, expectedEvent) {
   this.mouseEvent(left, top, {button: 1}, expectedEvent);
 
-  frame.events.pass({'function':'controller.middleClick()'});
+  frame.events.pass({'function':'MozMillElement.middleClick()'});
   return true;
 };
 
@@ -382,13 +382,13 @@ MozMillElement.prototype.middleClick = function(left, top, expectedEvent) {
 MozMillElement.prototype.rightClick = function(left, top, expectedEvent) {
   this.mouseEvent(left, top, {type : "contextmenu", button: 2 }, expectedEvent);
 
-  frame.events.pass({'function':'controller.rightClick()'});
+  frame.events.pass({'function':'MozMillElement.rightClick()'});
   return true;
 };
 
 MozMillElement.prototype.waitFor = function(callback, message, timeout, interval, thisObject) {
   utils.waitFor(callback, message, timeout, interval, thisObject);
-  frame.events.pass({'function':'controller.waitFor()'});
+  frame.events.pass({'function':'MozMillElement.waitFor()'});
 };
 
 MozMillElement.prototype.waitForElement = function(timeout, interval) {
@@ -396,7 +396,7 @@ MozMillElement.prototype.waitForElement = function(timeout, interval) {
     return this.exists();
   }, "Timeout exceeded for waitForElement " + this.getInfo(), timeout, interval);
 
-  frame.events.pass({'function':'Controller.waitForElement()'});
+  frame.events.pass({'function':'MozMillElement.waitForElement()'});
 };
 
 MozMillElement.prototype.waitForElementNotPresent = function(timeout, interval) {
@@ -404,7 +404,7 @@ MozMillElement.prototype.waitForElementNotPresent = function(timeout, interval) 
     return !this.exists();
   }, "Timeout exceeded for waitForElementNotPresent " + this.getInfo(), timeout, interval);
 
-  frame.events.pass({'function':'Controller.waitForElementNotPresent()'});
+  frame.events.pass({'function':'MozMillElement.waitForElementNotPresent()'});
 };
 
 MozMillElement.prototype.__defineGetter__("waitForEvents", function() {
@@ -461,7 +461,7 @@ MozMillCheckBox.prototype.check = function(state) {
     result = true;
   }
 
-  frame.events.pass({'function':'Controller.check(' + this.getInfo() + ', state: ' + state + ')'});
+  frame.events.pass({'function':'MozMillCheckBox.check(' + this.getInfo() + ', state: ' + state + ')'});
   return result;
 };
 
@@ -505,7 +505,7 @@ MozMillRadio.prototype.select = function()
     return element.checked == true;
   }, "Radio button " + this.getInfo() + " could not be selected", 500);
 
-  frame.events.pass({'function':'Controller.radio(' + this.getInfo() + ')'});
+  frame.events.pass({'function':'MozMillRadio.select(' + this.getInfo() + ')'});
   return true;
 };
 
@@ -541,7 +541,7 @@ MozMillDropList.prototype.select = function (indx, option, value) {
         this.element.selectedIndex = indx;
         events.triggerEvent(this.element, 'change', true);
 
-        frame.events.pass({'function':'Controller.select()'});
+        frame.events.pass({'function':'MozMillDropList.select()'});
         return true;
       } else {
         item = this.element.options.item(indx);
@@ -564,7 +564,7 @@ MozMillDropList.prototype.select = function (indx, option, value) {
       item.selected = true;
       events.triggerEvent(this.element, 'change', true);
 
-      frame.events.pass({'function':'Controller.select()'});
+      frame.events.pass({'function':'MozMillDropList.select()'});
       return true;
     } catch (ex) {
       throw new Error("No item selected for element " + this.getInfo());
@@ -587,7 +587,7 @@ MozMillDropList.prototype.select = function (indx, option, value) {
         element.boxObject.QueryInterface(Components.interfaces.nsIMenuBoxObject).activeChild = null;
         events.triggerEvent(element, 'change', true);
 
-        frame.events.pass({'function':'Controller.select()'});
+        frame.events.pass({'function':'MozMillDropList.select()'});
         return true;
       } else {
         item = menuitems[indx];
@@ -620,7 +620,7 @@ MozMillDropList.prototype.select = function (indx, option, value) {
       EventUtils.synthesizeMouse(item, 1, 1, {}, ownerDoc.defaultView);
       this.sleep(0);
 
-      frame.events.pass({'function':'Controller.select()'});
+      frame.events.pass({'function':'MozMillDropList.select()'});
       return true;
     } catch (ex) {
       throw new Error('No item selected for element ' + el.getInfo());

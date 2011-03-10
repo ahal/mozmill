@@ -7,12 +7,12 @@ var testFoo = function(){
   controller.waitForPageLoad();
   
   //var about = getElement.byLink(undefined, "About Us"); 
-  var about = new MozMillElement("Link", "About Us");
+  var about = new MozMillElement("Link", "About Us");  // This will be lazy loaded
   about.click();
   controller.sleep(1000);
   
-  var textbox = getElement.byElem(controller.tabs.activeTab.getElementById("q"));
-  var button = getElement.byID(undefined, "quick-search-btn");
+  var textbox = getElementBy.Elem(controller.tabs.activeTab.getElementById("q"));
+  var button = getElementBy.ID(undefined, "quick-search-btn");
   
   textbox.type("mozmill");
   controller.sleep(1000);
@@ -20,15 +20,15 @@ var testFoo = function(){
   controller.click(button);
   controller.sleep(1000);
   
-  var radio = getElement.byID(undefined, "www");
-  button = getElement.byXPath(undefined, "/html/body/div/table/tbody/tr/td/table/tbody/tr/td[2]/table/tbody/tr[2]/td/input[7]");
+  var radio = new MozMillRadio("ID", "www");
+  button = elementslib.XPath(undefined, "/html/body/div/table/tbody/tr/td/table/tbody/tr/td[2]/table/tbody/tr[2]/td/input[7]");
   
   radio.select();
   
   button.keypress("VK_RETURN", {});
   controller.waitForPageLoad();
   
-  var logo = getElement.byXPath(undefined, "/html/body/div/table/tbody/tr/td/table/tbody/tr/td/a/img");
+  var logo = getElementBy.XPath(undefined, "/html/body/div/table/tbody/tr/td/table/tbody/tr/td/a/img");
   logo.click();
   controller.waitForPageLoad();
 
@@ -36,7 +36,7 @@ var testFoo = function(){
   const NAV_BAR = '/id("main-window")/id("tab-view-deck")/{"flex":"1"}' +
                                  '/id("navigator-toolbox")/id("nav-bar")';
   const URL_BAR = NAV_BAR + '/id("urlbar-container")/id("urlbar")';
-  var urlBar = getElement.byLookup(controller.window.document, URL_BAR);
+  var urlBar = new elementslib.Lookup(controller.window.document, URL_BAR);
   
   urlBar.keypress("a", {accelKey:true});
   urlBar.type("http://www.mozilla.org");

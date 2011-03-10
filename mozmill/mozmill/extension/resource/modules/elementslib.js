@@ -62,6 +62,13 @@ var countQuotes = function(str){
   }
   return count;
 };
+
+/**
+ * smartSplit()
+ *
+ * Takes a lookup string as input and returns
+ * a list of each node in the string
+ */
 var smartSplit = function (str) {
   // Ensure we have an even number of quotes
   if (countQuotes(str) % 2 != 0) {
@@ -87,12 +94,24 @@ var smartSplit = function (str) {
   return ret;
 };
 
+/**
+ * defaultDocuments()
+ *
+ * Returns a list of default documents in which to search for elements
+ * if no document is provided
+ */
 function defaultDocuments() {
   var windowManager = Components.classes['@mozilla.org/appshell/window-mediator;1'].getService(Components.interfaces.nsIWindowMediator);
   win = windowManager.getMostRecentWindow("navigator:browser");
   return [win.gBrowser.selectedBrowser.contentDocument, win.document];
 };
 
+/**
+ * nodeSearch()
+ *
+ * Takes an optional document, callback and locator string
+ * Returns a handle to the located element or null
+ */
 function nodeSearch(doc, func, string) {
   if (doc != undefined) {
     var documents = [doc];
@@ -119,7 +138,6 @@ function nodeSearch(doc, func, string) {
   };
   
   for (var i = 0; i < documents.length; ++i) {
-    dump("DOCUMENT " + i + ": " + documents[i] + ", STRING: " + string + "\n");
     var win = documents[i].defaultView;
     search(win, func, string);
     if (e) break;
@@ -127,6 +145,11 @@ function nodeSearch(doc, func, string) {
   return e;
 };
 
+/**
+ * Selector()
+ *
+ * Finds an element by selector string
+ */
 function Selector(_document, selector) {
   if (selector == undefined) {
     throw new Error('Selector constructor did not recieve enough arguments.');
@@ -140,6 +163,11 @@ function Selector(_document, selector) {
   return nodes ? nodes[index || 0] : null;
 };
 
+/**
+ * ID()
+ *
+ * Finds an element by ID
+ */
 function ID(_document, nodeID) {
   if (nodeID == undefined) {
     throw new Error('ID constructor did not recieve enough arguments.');
@@ -150,6 +178,11 @@ function ID(_document, nodeID) {
   return nodeSearch(_document, this.getNodeForDocument, nodeID);
 };
 
+/**
+ * Link()
+ *
+ * Finds a link by innerHTML
+ */
 function Link(_document, linkName) {
   if (linkName == undefined) {
     throw new Error('Link constructor did not recieve enough arguments.');
@@ -196,7 +229,11 @@ function Link(_document, linkName) {
   return nodeSearch(_document, this.getNodeForDocument, linkName);
 };
 
-
+/**
+ * XPath()
+ *
+ * Finds an element by XPath
+ */
 function XPath(_document, expr) {
   if (expr == undefined) {
     throw new Error('XPath constructor did not recieve enough arguments.');
@@ -223,6 +260,11 @@ function XPath(_document, expr) {
   return nodeSearch(_document, this.getNodeForDocument, expr);
 };
 
+/**
+ * Name()
+ *
+ * Finds an element by Name
+ */
 function Name(_document, nName) {
   if (nName == undefined) {
     throw new Error('Name constructor did not recieve enough arguments.');
@@ -347,7 +389,11 @@ var _anonByIndex = function (_document, parent, i) {
   return _document.getAnonymousNodes(parent)[i];
 }
 
-
+/**
+ * Lookup()
+ *
+ * Finds an element by Lookup expression
+ */
 function Lookup (_document, expression) {
   if (expression == undefined) {
     throw new Error('Lookup constructor did not recieve enough arguments.');

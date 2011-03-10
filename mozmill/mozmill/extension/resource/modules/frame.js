@@ -67,20 +67,16 @@ arrayRemove = function(array, from, to) {
   return array.push.apply(array, rest);
 };
 
-mozmill = undefined; elementslib = undefined; getElement = undefined;
+mozmill = undefined; mozelement = undefined;
 
 var loadTestResources = function () {
   if (mozmill == undefined) {
     mozmill = {};
     Components.utils.import("resource://mozmill/modules/mozmill.js", mozmill);
   }
-  if (elementslib == undefined) {
-    elementslib = {};
-    Components.utils.import("resource://mozmill/modules/elementslib.js", elementslib);
-  }
-  if (getElement == undefined) {
-    getElement = {};
-    Components.utils.import("resource://mozmill/modules/mozelement.js", getElement);
+  if (mozelement == undefined) {
+    mozelement = {};
+    Components.utils.import("resource://mozmill/modules/mozelement.js", mozelement);
   }
 }
 
@@ -94,9 +90,14 @@ var loadFile = function(path, collector) {
   module.collector = collector
   loadTestResources();
   module.mozmill = mozmill;
-  module.elementslib = elementslib;
-  module.getElement = getElement;
-  module.MozMillElement = getElement.MozMillElement;
+  module.elementslib = mozelement;
+  module.getElementBy = mozelement;
+  // I don't think injecting each type of element into the global scope manually is a good idea.
+  // This is more for demonstration purposes until we figure out how to implement the static map.
+  module.MozMillElement = mozelement.MozMillElement;
+  module.MozMillCheckBox = mozelement.MozMillCheckBox;
+  module.MozMillRadio = mozelement.MozMillRadio;
+  module.MozMillDropList = mozelement.MozMillDroplist;
   module.persisted = persisted;
   module.Cc = Components.classes;
   module.Ci = Components.interfaces;
@@ -108,9 +109,12 @@ var loadFile = function(path, collector) {
       rootPaths: [ios.newFileURI(file.parent).spec],
       defaultPrincipal: "system",
       globals : { mozmill: mozmill,
-                  elementslib: elementslib,
-                  getElement: getElement,
-                  MozMillElement: getElement.MozMillElement,
+                  elementslib: mozelement,      // This a quick hack to maintain backwards compatibility with 1.5.x
+                  getElementBy: mozelement,
+                  MozMillElement: mozelement.MozMillElement,
+                  MozMillCheckbox: mozelement.MozMillCheckBox,
+                  MozMillRadio: mozelement.MozMillRadio,
+                  MozMillDropList: mozelement.MozMillDropList,
                   persisted: persisted,
                   Cc: Components.classes,
                   Ci: Components.interfaces,
