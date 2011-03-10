@@ -120,30 +120,30 @@ function MozMillElement(locatorType, locator, args) {
 
 MozMillElement.prototype.__defineGetter__("element", function() {
   if (this._element == undefined) {
-    switch(this.locatorType) {
+    switch(this._locatorType) {
       case "Elem":
         this._element = this.locator;
         break;
       case "Selector":
-        this._element = elementslib.Selector(this._document, this.locator);
+        this._element = elementslib.Selector(this._document, this._locator);
         break;
       case "ID":
-        this._element = elementslib.ID(this._document, this.locator);
+        this._element = elementslib.ID(this._document, this._locator);
         break;
       case "Link":
-        this._element = elementslib.Link(this._document, this.locator);
+        this._element = elementslib.Link(this._document, this._locator);
         break;
       case "XPath":
-        this._element = elementslib.XPath(this._document, this.locator);
+        this._element = elementslib.XPath(this._document, this._locator);
         break;
       case "Name":
-        this._element = elementslib.Name(this._document, this.locator);
+        this._element = elementslib.Name(this._document, this._locator);
         break;
       case "Lookup":
-        this._element = elementslib.Lookup(this._document, this.locator);
+        this._element = elementslib.Lookup(this._document, this._locator);
         break;
       default:
-        throw new Error("Unknown locator type: " + this.locatorType);
+        throw new Error("Unknown locator type: " + this._locatorType);
     }
   }
   return this._element;
@@ -407,7 +407,7 @@ MozMillElement.prototype.waitThenClick = function (timeout, interval) {
 };
 
 MozMillElement.prototype.getInfo = function() {
-  return this.locatorType + ": " + this.locator;
+  return this._locatorType + ": " + this._locator;
 };
 
 // Used to maintain backwards compatibility with controller.js
