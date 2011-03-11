@@ -241,19 +241,13 @@ class MozMill(object):
     def run(self, tests):
         """run the tests"""
 
-        disconnected = False
         try:
             self.run_tests(tests)
         except JSBridgeDisconnectError:
-            disconnected = True
             if not self.userShutdownEnabled:
                 self.report_disconnect()
                 raise
             
-        if disconnected:
-            # raise the disconnect error
-            raise
-
     def get_appinfo(self, bridge):
         """ Collect application specific information """
         mozmill = jsbridge.JSObject(bridge, mozmillModuleJs)
@@ -271,7 +265,7 @@ class MozMill(object):
     ### methods for shutting down and cleanup
     
     def report_disconnect(self):
-        test = self.current_test
+        test = getattr(self, "current_test", {})
         test['passes'] = []
         test['fails'] = [{
           'exception' : {
