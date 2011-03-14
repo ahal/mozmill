@@ -488,6 +488,7 @@ MozMillController.prototype.mouseEvent = function(aTarget, aOffsetX, aOffsetY,
  * Synthesize a mouse click event on the given element
  */
 MozMillController.prototype.click = function(elem, left, top, expectedEvent, useNative) {
+  webdriver.click();
   var element = elem.getNode()
 
   if (useNative) {
