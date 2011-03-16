@@ -35,8 +35,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var EXPORTED_SYMBOLS = ["events"];
-var frame = {}; Components.utils.import('resource://mozmill/modules/frame.js', frame);
+var EXPORTED_SYMBOLS = ["sendClick"];
 
 // Load JS Ctypes module
 Components.utils.import("resource://gre/modules/ctypes.jsm");
@@ -53,12 +52,23 @@ function getFile(chromeURL) {
   return  fileURL.QueryInterface(Components.interfaces.nsIFileURL).file;
 }
 
-function events() {
-  var file = getFile("chrome://mozmill/content/libnative_events.so");
-  this.lib = ctypes.open(file.path);
-
-  /** Function Declarations **/
-  this.sendClick = this.lib.declare("sendClick", ctypes.default_abi, ctypes.int32_t, ctypes.int32_t, ctypes.int32_t);
-  this.sendKey = this.lib.declate("sendKey", ctypes.default_abi, ctypes.int32_t, ctypes.int32_t);
-
+function findPos(node){
+  var posX = node.offsetLeft;
+  var posY = node.offsetTop;
+  while(node.offsetParent) {
+    posX = posX + node.offsetParent.offsetLeft;
+    posY = posY + node.offsetParent.offsetTop;
+    node = node.offsetParent;
+  }
 }
+
+
+function sendClick(node, x, y, button) {
+  var file = getFile("chrome://mozmill/content/libnative_events.so");
+  dump(file.path + "\n")
+  var lib = ctypes.open(file.path);
+
+  var sendClick = lib.declare("sendClick", ctypes.default_abi, ctypes.int32_t, ctypes.voidptr_t, 
+                                                ctypes.int32_t, ctypes.int32_t, ctypes.int32_t);
+  dump(sendClick(node, x, y, button) + "\n");
+} 

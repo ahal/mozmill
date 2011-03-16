@@ -16,4 +16,3 @@ $(TARGET): $(OBJECTS)
 clean:
 	echo Cleaning up temporary files
 	rm -f $(TARGET) $(OBJECTS) *.o
-#	mv $(TARGET) ../content/

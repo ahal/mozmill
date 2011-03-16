@@ -1,3 +1,3 @@
-int add(int a, int b) {
-    return a + b;
+int sendClick(void *aNode, int x, int y, int button) {
+    return -1;
 }

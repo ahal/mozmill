@@ -488,18 +488,11 @@ MozMillController.prototype.mouseEvent = function(aTarget, aOffsetX, aOffsetY,
  * Synthesize a mouse click event on the given element
  */
 MozMillController.prototype.click = function(elem, left, top, expectedEvent, useNative) {
-  webdriver.click();
   var element = elem.getNode()
 
   if (useNative) {
-    try {
-      frame.log({'function':'controller.click()', 'message':'Using native events'});
-      webdriver.events.synthesizeMouse(element, left, top, {});
-    }
-    catch(e){
-      frame.log({'function':'controller.click()', 'message':'Couldn\'t load native events, falling back to normal events: ' + String(e)});
-      EventUtils.synthesizeMouse(element, left, top, {}, element.ownerDocument.defaultView);
-    }
+    frame.log({'function':'controller.click()', 'message':'Using native events'});
+    webdriver.sendClick(element, 0, 0, 0); 
   } else {
     // Handle menu items differently
     if (element && element.tagName == "menuitem") {
