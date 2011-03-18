@@ -62,8 +62,18 @@ function findPos(node){
   }
 }
 
+function getScreenCoordinates(node) 
+  var rect = node.getBoundingClientRect();
+  var pos = {'x':rect.left, 'y':rect.top,};
+
+
+}
+
 
 function sendClick(node, x, y, button) {
+  var win = node.ownerDocument.defaultView;
+  dump(win === win.parent);
+
   var file = getFile("chrome://mozmill/content/libnative_events.so");
   dump(file.path + "\n")
   var lib = ctypes.open(file.path);
