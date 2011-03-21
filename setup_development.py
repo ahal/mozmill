@@ -35,15 +35,29 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-
-PACKAGES = ['mozprocess', 'mozprofile', 'mozrunner', 'jsbridge', 'mozmill']
-
 import os
 import subprocess
 import sys
+from optparse import OptionParser
 
-path = os.path.dirname(os.path.abspath(__file__))
+def main(argv):
+    PACKAGES = ['mozprocess', 'mozprofile', 'mozrunner', 'jsbridge', 'mozmill']
 
-for package in PACKAGES:
-    os.chdir(os.path.join(path, package))
-    subprocess.call([sys.executable, "setup.py", "develop"])
+    usage = '%prog [--mutt]'
+    parser = OptionParser(usage=usage)
+    parser.add_option('--mutt', action='store_true',
+                      dest="mutt",
+                      default=False,
+                      help='Install the mutt unit tester')
+    (opt, args) = parser.parse_args(argv)
+    if opt.mutt:
+        PACKAGES.append("mutt")
+
+    path = os.path.dirname(os.path.abspath(__file__))
+
+    for package in PACKAGES:
+        os.chdir(os.path.join(path, package))
+        subprocess.call([sys.executable, "setup.py", "develop"])
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -493,6 +493,7 @@ MozMillController.prototype.click = function(elem, left, top, expectedEvent, use
   if (useNative) {
     frame.log({'function':'controller.click()', 'message':'Using native events'});
     webdriver.sendClick(element, 0, 0, 0); 
+    this.sleep(2000);
   } else {
     // Handle menu items differently
     if (element && element.tagName == "menuitem") {

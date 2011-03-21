@@ -62,23 +62,40 @@ function findPos(node){
   }
 }
 
-function getScreenCoordinates(node) 
+function getScreenCoordinates(node) {
   var rect = node.getBoundingClientRect();
+  dump("rect.left: " + rect.left + "\n");
+  dump("rect.top: " + rect.top + "\n");
   var pos = {'x':rect.left, 'y':rect.top,};
+  var win = node.ownerDocument.defaultView;
+  pos.x += win.screenX;
+  pos.y += win.screenY;
 
-
+  pos.y += win.outerHeight - win.innerHeight;
+  
+  pos.x += rect.width / 2;
+  pos.y += rect.height / 2;
+  dump("pos.x: " + pos.x + "\n");
+  dump("pos.y: " + pos.y + "\n");
+  return pos;
 }
 
 
 function sendClick(node, x, y, button) {
   var win = node.ownerDocument.defaultView;
-  dump(win === win.parent);
+  dump("inner: " + win.innerHeight + "\n");
+  dump("outer: " + win.outerHeight + "\n");
+  dump("diff: " + (win.outerHeight - win.innerHeight) + "\n");
+  dump("screenX: " + win.screenX + "\n");
+  dump("screenY: " + win.screenY + "\n");
 
   var file = getFile("chrome://mozmill/content/libnative_events.so");
   dump(file.path + "\n")
   var lib = ctypes.open(file.path);
 
-  var sendClick = lib.declare("sendClick", ctypes.default_abi, ctypes.int32_t, ctypes.voidptr_t, 
-                                                ctypes.int32_t, ctypes.int32_t, ctypes.int32_t);
-  dump(sendClick(node, x, y, button) + "\n");
+  var sendClick = lib.declare("sendClick", ctypes.default_abi, ctypes.int32_t, ctypes.double, 
+                                                                    ctypes.double, ctypes.int32_t);
+  node.focus();
+  var pos = getScreenCoordinates(node);
+  dump(sendClick(pos.x, pos.y, button) + "\n");
 } 
