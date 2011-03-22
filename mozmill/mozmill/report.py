@@ -65,26 +65,19 @@ class Report(object):
   @classmethod
   def add_options(cls, parser):
     """add options to the parser"""
-    parser.add_option("--report", dest="report", default=None,
+    parser.add_option("--report", dest="report",
+                      default=None, metavar='URL',
                       help="Report the results. Requires url to results server. Use 'stdout' for stdout.")
 
   def stop(self, results, fatal=False):
     results = self.get_report(results)
     return self.send_report(results, self.report)
 
-  def report_type(self):
-    return 'NotImplementedError'
-    # XXX NOT SURE WHAT TO DO HERE
-    # if you're reporting across mozmill and mozmill-restart tests ...
-    # maybe this should live with the test metadata? ::shrug::
-    mapping = {'MozMill': 'mozmill-test',
-               'MozMillRestart': 'mozmill-restart-test',}
-    return mapping[self.mozmill.__class__.__name__]
-
   def get_report(self, results):
     """get the report results"""
 
-    report = {'report_type': self.report_type(),
+    report = {'report_type': 'mozmill-test',
+              'mozmill_version': results.mozmill_version,
               'time_start': results.starttime.strftime(self.date_format),
               'time_end': results.endtime.strftime(self.date_format),
               'time_upload': 'n/a',
