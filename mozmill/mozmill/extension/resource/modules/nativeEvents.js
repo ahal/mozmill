@@ -80,6 +80,11 @@ function getScreenCoordinates(node) {
   return pos;
 }
 
+function getAccessibleDocument(node) {
+  var retrieval = Components.classes["@mozilla.org/accessibleRetrieval;1"].createInstance(Components.interfaces.nsIAccessibleRetrieval);
+  var accessible = retrieval.getAccessibleFor(node.ownerDocument);
+  return accessible.QueryInterface(Components.interfaces.nsIAccessibleDocument);
+}
 
 function sendClick(node, x, y, button) {
   var win = node.ownerDocument.defaultView;
@@ -97,5 +102,6 @@ function sendClick(node, x, y, button) {
                                                                     ctypes.double, ctypes.int32_t);
   node.focus();
   var pos = getScreenCoordinates(node);
+  node = getAccessibleDocument(node);
   dump(sendClick(pos.x, pos.y, button) + "\n");
 } 
