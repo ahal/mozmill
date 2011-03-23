@@ -2,23 +2,21 @@ var setupModule = function(module) {
   module.controller = mozmill.getBrowserController();
 };
 
-var testFoo = function(){
+var testMozElement = function(){
   controller.open('http://www.mozilla.org');
   controller.waitForPageLoad();
   
   //var about = getElement.byLink(undefined, "About Us"); 
   var about = new MozMillElement("Link", "About Us");  // This will be lazy loaded
   about.click();
-  controller.sleep(1000);
+  controller.waitForPageLoad();
   
   var textbox = getElementBy.Elem(controller.tabs.activeTab.getElementById("q"));
   var button = getElementBy.ID(undefined, "quick-search-btn");
   
   textbox.type("mozmill");
-  controller.sleep(1000);
-  
   controller.click(button);
-  controller.sleep(1000);
+  controller.waitForPageLoad();
   
   var radio = new MozMillRadio("ID", "www");
   button = elementslib.XPath(undefined, "/html/body/div/table/tbody/tr/td/table/tbody/tr/td[2]/table/tbody/tr[2]/td/input[7]");

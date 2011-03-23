@@ -119,6 +119,8 @@ var triggerKeyEvent = function(element, eventType, aKey, modifiers, expectedEven
   win.focus();
   utils.sleep(5);
 
+  dump(aKey + "\n");
+
   // If we have an element check if it needs to be focused
   if (element.ownerDocument) {
     var focusedElement = utils.getChromeWindow(win).document.commandDispatcher.focusedElement;
