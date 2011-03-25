@@ -38,6 +38,7 @@
 
 var EXPORTED_SYMBOLS = ["Elem", "Selector", "ID", "Link", "XPath", "Name", "Lookup", 
                         "MozMillElement", "MozMillCheckBox", "MozMillRadio", "MozMillDropList",
+                        "MozMillTextBox",
                        ];
 
 var EventUtils = {}; Components.utils.import('resource://mozmill/stdlib/EventUtils.js', EventUtils);
@@ -53,33 +54,23 @@ var elementslib = {}; Components.utils.import('resource://mozmill/modules/elemen
  * The type of the element is automatically determined
  */
 var createInstance = function (locatorType, locator, elem) {
-  switch(elem.localName.toLowerCase()) {
-    case 'select':
-    case 'menulist':
-      return new MozMillDropList(locatorType, locator, {"element":elem});
-    case 'input':
-      var type = elem.getAttribute('type');
-      if (type === 'checkbox') {
-        return new MozMillCheckBox(locatorType, locator, {"element":elem});
-      } else if (type === 'radio') {
-        return new MozMillRadio(locatorType, locator, {"element":elem});
-      }
-      break;
-    case 'checkbox':
-      return new MozMillCheckBox(locatorType, locator, {"element":elem});
-    case 'radio':
-      return new MozMillRadio(locatorType, locator, {"element":elem});
-    default:
+  if (elem) {
+    var args = {"element":elem};
+    if (MozMillCheckBox.isType(elem)) return new MozMillCheckBox(locatorType, locator, args);
+    if (MozMillRadio.isType(elem)) return new MozMillRadio(locatorType, locator, args);
+    if (MozMillDropList.isType(elem)) return new MozMillDropList(locatorType, locator, args);
+    if (MozMillTextBox.isType(elem)) return new MozMillTextBox(locatorType, locator, args);
+    if (MozMillElement.isType(elem)) return new MozMillElement(locatorType, locator, args);
   }
-  return new MozMillElement(locatorType, locator, {"element":elem});
+  throw new Error("could not find element " + locatorType + ": " + locator);
 };
 
 var Elem = function(node) {
   return createInstance("Elem", node, node);
 };
 
-var Selector = function(_document, selector) {
-  return createInstance("Selector", selector, elementslib.Selector(_document, selector));
+var Selector = function(_document, selector, index) {
+  return createInstance("Selector", selector, elementslib.Selector(_document, selector, index));
 };
 
 var ID = function(_document, nodeID) {
@@ -116,35 +107,22 @@ function MozMillElement(locatorType, locator, args) {
   this._owner = args["owner"];
   // Used to maintain backwards compatibility with controller.js
   this.isElement = true;
+}
+
+// Static method that returns true if node is of this element type
+MozMillElement.isType = function(node) {
+  return true;
 };
 
 // This getter is the magic behind lazy loading (note distinction between _element and element)
 MozMillElement.prototype.__defineGetter__("element", function() {
   if (this._element == undefined) {
-    switch(this._locatorType) {
-      case "Elem":
-        this._element = this.locator;
-        break;
-      case "Selector":
-        this._element = elementslib.Selector(this._document, this._locator);
-        break;
-      case "ID":
-        this._element = elementslib.ID(this._document, this._locator);
-        break;
-      case "Link":
-        this._element = elementslib.Link(this._document, this._locator);
-        break;
-      case "XPath":
-        this._element = elementslib.XPath(this._document, this._locator);
-        break;
-      case "Name":
-        this._element = elementslib.Name(this._document, this._locator);
-        break;
-      case "Lookup":
-        this._element = elementslib.Lookup(this._document, this._locator);
-        break;
-      default:
-        throw new Error("Unknown locator type: " + this._locatorType);
+    if (elementslib[this._locatorType]) {
+      this._element = elementslib[this._locatorType](this._document, this._locator); 
+    } else if (this._locatorType == "Elem") {
+      this._element = this._locator;
+    } else {
+      throw new Error("Unknown locator type: " + this._locatorType);
     }
   }
   return this._element;
@@ -198,38 +176,12 @@ MozMillElement.prototype.keypress = function(aKey, aModifiers, aExpectedEvent) {
     throw new Error("Could not find element " + this.getInfo());
   }
 
-  events.triggerKeyEvent(this.element, 'keypress', aKey, aModifiers, aExpectedEvent);
+  events.triggerKeyEvent(this.element, 'keypress', aKey, aModifiers || {}, aExpectedEvent);
 
   frame.events.pass({'function':'MozMillElement.keypress()'});
   return true;
 };
 
-/**
- * Synthesize keypress events for each character on the given element
- *
- * @param {ElemBase} aTarget
- *        Element which will receive the type event
- * @param {string} aText
- *        The text to send as single keypress events
- * @param {object} aExpectedEvent
- *        Information about the expected event to occur
- *        Elements: target     - Element which should receive the event
- *                               [optional - default: current element]
- *                  type       - Type of the expected key event
- */
-MozMillElement.prototype.type = function (aText, aExpectedEvent) {
-  if (!this.element) {
-    throw new Error("could not find element " + this.getInfo());
-  }
-
-  var element = this.element;
-  Array.forEach(aText, function(letter) {
-    events.triggerKeyEvent(element, 'keypress', letter, {}, aExpectedEvent);
-  });
-
-  frame.events.pass({'function':'MozMillElement.type()'});
-  return true;
-};
 
 /**
  * Synthesize a general mouse event on the given element
@@ -435,6 +387,16 @@ MozMillCheckBox.prototype.constructor = MozMillCheckBox;
 function MozMillCheckBox(locatorType, locator, args) {
   this.parent.constructor.call(this, locatorType, locator, args);
   this.element = this.getElement;
+}
+
+// Static method returns true if node is this type of element
+MozMillCheckBox.isType = function(node) {
+  if ((node.localName.toLowerCase() == "input" && node.getAttribute("type") == "checkbox") ||
+      (node.localName.toLowerCase() == 'toolbarbutton' && node.getAttribute('type') == 'checkbox') ||
+      (node.localName.toLowerCase() == 'checkbox')) {
+    return true;
+  }
+  return false;
 };
 
 /**
@@ -480,6 +442,16 @@ MozMillRadio.prototype.parent = MozMillElement.prototype;
 MozMillRadio.prototype.constructor = MozMillRadio;
 function MozMillRadio(locatorType, locator, args) {
   this.parent.constructor.call(this, locatorType, locator, args);
+}
+
+// Static method returns true if node is this type of element
+MozMillRadio.isType = function(node) {
+  if ((node.localName.toLowerCase() == 'input' && node.getAttribute('type') == 'radio') ||
+      (node.localName.toLowerCase() == 'toolbarbutton' && node.getAttribute('type') == 'radio') ||
+      (node.localName.toLowerCase() == 'radio')) {
+    return true;
+  }
+  return false;
 };
 
 /**
@@ -523,7 +495,18 @@ MozMillDropList.prototype = new MozMillElement();
 MozMillDropList.prototype.parent = MozMillElement.prototype;
 MozMillDropList.prototype.constructor = MozMillDropList;
 function MozMillDropList(locatorType, locator, args) {
-  this.parent.constructor.call(locatorType, locator, args);
+  this.parent.constructor.call(this, locatorType, locator, args);
+};
+
+// Static method returns true if node is this type of element
+MozMillDropList.isType = function(node) {
+  if ((node.localName.toLowerCase() == 'toolbarbutton' && (node.getAttribute('type') == 'menu' || node.getAttribute('type') == 'menu-button')) ||
+      (node.localName.toLowerCase() == 'menu') ||
+      (node.localName.toLowerCase() == 'menulist') ||
+      (node.localName.toLowerCase() == 'select' )) {
+    return true;
+  }
+  return false;
 };
 
 /* Select the specified option and trigger the relevant events of the element */
@@ -630,4 +613,66 @@ MozMillDropList.prototype.select = function (indx, option, value) {
       return false;
     }
   }
+};
+
+
+//----------------------------------------------------------------------------------------------------------------------------------------
+
+
+/**
+ * MozMillTextBox
+ * TextBox inherits from MozMillElement
+ */
+MozMillTextBox.prototype = new MozMillElement();
+MozMillTextBox.prototype.parent = MozMillElement.prototype;
+MozMillTextBox.prototype.constructor = MozMillTextBox;
+function MozMillTextBox(locatorType, locator, args) {
+  this.parent.constructor.call(this, locatorType, locator, args);
+};
+
+// Static method returns true if node is this type of element
+MozMillTextBox.isType = function(node) {
+  if ((node.localName.toLowerCase() == 'input' && (node.getAttribute('type') == 'text' || node.getAttribute('type') == 'search')) ||
+      (node.localName.toLowerCase() == 'textarea') ||
+      (node.localName.toLowerCase() == 'textbox')) {
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Synthesize keypress events for each character on the given element
+ *
+ * @param {string} aText
+ *        The text to send as single keypress events
+ * @param {object} aModifiers
+ *        Information about the modifier keys to send
+ *        Elements: accelKey   - Hold down the accelerator key (ctrl/meta)
+ *                               [optional - default: false]
+ *                  altKey     - Hold down the alt key
+ *                              [optional - default: false]
+ *                  ctrlKey    - Hold down the ctrl key
+ *                               [optional - default: false]
+ *                  metaKey    - Hold down the meta key (command key on Mac)
+ *                               [optional - default: false]
+ *                  shiftKey   - Hold down the shift key
+ *                               [optional - default: false]
+ * @param {object} aExpectedEvent
+ *        Information about the expected event to occur
+ *        Elements: target     - Element which should receive the event
+ *                               [optional - default: current element]
+ *                  type       - Type of the expected key event
+ */
+MozMillTextBox.prototype.sendKeys = function (aText, aModifiers, aExpectedEvent) {
+  if (!this.element) {
+    throw new Error("could not find element " + this.getInfo());
+  }
+
+  var element = this.element;
+  Array.forEach(aText, function(letter) {
+    events.triggerKeyEvent(element, 'keypress', letter, aModifiers || {}, aExpectedEvent);
+  });
+
+  frame.events.pass({'function':'MozMillElement.type()'});
+  return true;
 };

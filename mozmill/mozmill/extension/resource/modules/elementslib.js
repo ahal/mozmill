@@ -150,16 +150,15 @@ function nodeSearch(doc, func, string) {
  *
  * Finds an element by selector string
  */
-function Selector(_document, selector) {
+function Selector(_document, selector, index) {
   if (selector == undefined) {
     throw new Error('Selector constructor did not recieve enough arguments.');
   }
-  this._view = _document == undefined ? _document : _document.defaultView;
   this.selector = selector;
   this.getNodeForDocument = function (s) {
     return this.document.querySelectorAll(s);
   };
-  var nodes = nodeSearch(this._view.document, this.getNodeForDocument, this.selector);
+  var nodes = nodeSearch(_document, this.getNodeForDocument, this.selector);
   return nodes ? nodes[index || 0] : null;
 };
 

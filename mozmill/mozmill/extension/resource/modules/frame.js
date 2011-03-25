@@ -86,19 +86,14 @@ var loadFile = function(path, collector) {
   file.initWithPath(path);
   var uri = ios.newFileURI(file).spec;
 
+
   // populate the module with some things we like
   var module = {};  
   module.collector = collector
   loadTestResources();
   module.mozmill = mozmill;
   module.elementslib = mozelement;
-  module.getElementBy = mozelement;
-  // I don't think injecting each type of element into the global scope manually is a good idea.
-  // This is more for demonstration purposes until we figure out how to implement the static map.
-  module.MozMillElement = mozelement.MozMillElement;
-  module.MozMillCheckBox = mozelement.MozMillCheckBox;
-  module.MozMillRadio = mozelement.MozMillRadio;
-  module.MozMillDropList = mozelement.MozMillDroplist;
+  module.findElement = mozelement;
   module.persisted = persisted;
   module.Cc = Components.classes;
   module.Ci = Components.interfaces;
@@ -110,11 +105,7 @@ var loadFile = function(path, collector) {
       defaultPrincipal: "system",
       globals : { mozmill: mozmill,
                   elementslib: mozelement,      // This a quick hack to maintain backwards compatibility with 1.5.x
-                  getElementBy: mozelement,
-                  MozMillElement: mozelement.MozMillElement,
-                  MozMillCheckbox: mozelement.MozMillCheckBox,
-                  MozMillRadio: mozelement.MozMillRadio,
-                  MozMillDropList: mozelement.MozMillDropList,
+                  findElement: mozelement,
                   persisted: persisted,
                   Cc: Components.classes,
                   Ci: Components.interfaces,
