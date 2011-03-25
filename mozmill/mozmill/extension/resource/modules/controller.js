@@ -807,7 +807,6 @@ MozMillController.prototype.select = function (el, indx, option, value) {
     element = utils.unwrapNode(element);
     // Get the list of menuitems
     menuitems = element.getElementsByTagName("menupopup")[0].getElementsByTagName("menuitem");
-    
     var item = null;
 
     if (indx != undefined) {

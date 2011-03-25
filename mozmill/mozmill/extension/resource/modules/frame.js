@@ -64,16 +64,17 @@ arrayRemove = function(array, from, to) {
   return array.push.apply(array, rest);
 };
 
-mozmill = undefined; elementslib = undefined;
+mozmill = undefined; mozelement = undefined;
+
 var loadTestResources = function () {
   // load resources we want in our tests
   if (mozmill == undefined) {
     mozmill = {};
     Components.utils.import("resource://mozmill/modules/mozmill.js", mozmill);
   }
-  if (elementslib == undefined) {
-    elementslib = {};
-    Components.utils.import("resource://mozmill/modules/elementslib.js", elementslib);
+  if (mozelement == undefined) {
+    mozelement = {};
+    Components.utils.import("resource://mozmill/modules/mozelement.js", mozelement);
   }
 }
 
@@ -85,12 +86,14 @@ var loadFile = function(path, collector) {
   file.initWithPath(path);
   var uri = ios.newFileURI(file).spec;
 
+
   // populate the module with some things we like
   var module = {};  
   module.collector = collector
   loadTestResources();
   module.mozmill = mozmill;
-  module.elementslib = elementslib;
+  module.elementslib = mozelement;
+  module.findElement = mozelement;
   module.persisted = persisted;
   module.Cc = Components.classes;
   module.Ci = Components.interfaces;
@@ -101,7 +104,8 @@ var loadFile = function(path, collector) {
       rootPaths: [ios.newFileURI(file.parent).spec],
       defaultPrincipal: "system",
       globals : { mozmill: mozmill,
-                  elementslib: elementslib,
+                  elementslib: mozelement,      // This a quick hack to maintain backwards compatibility with 1.5.x
+                  findElement: mozelement,
                   persisted: persisted,
                   Cc: Components.classes,
                   Ci: Components.interfaces,
@@ -192,6 +196,7 @@ events.setTest = function (test, invokedFromIDE) {
   events.fireEvent('setTest', obj);
 }
 events.endTest = function (test) {
+  // report the end of a test
   test.status = 'done';
   events.currentTest = null; 
   var obj = {'filename':events.currentModule.__file__, 
@@ -214,7 +219,9 @@ events.setModule = function (v) {
   return stateChangeBase( null, [function (v) {return (v.__file__ != undefined)}], 
                           'currentModule', 'setModule', v);
 }
+
 events.pass = function (obj) {
+  // a low level event, such as a keystroke, succeeds
   if (events.currentTest) {
     events.currentTest.__passes__.push(obj);
   }
@@ -227,6 +234,7 @@ events.pass = function (obj) {
   events.fireEvent('pass', obj);
 }
 events.fail = function (obj) {
+  // a low level event, such as a keystroke, fails
   if (events.currentTest) {
     events.currentTest.__fails__.push(obj);
   }
@@ -239,6 +247,8 @@ events.fail = function (obj) {
   events.fireEvent('fail', obj);
 }
 events.skip = function (reason) {
+  // this is used to report skips associated with setupModule and setupTest
+  // and nothing else
   events.currentTest.skipped = true;
   events.currentTest.skipped_reason = reason;
   for each(var timer in timers) {

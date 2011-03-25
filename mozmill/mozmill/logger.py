@@ -15,49 +15,66 @@ class LoggerListener(object):
   name = 'Logging'
 
   ### methods for the EventHandler interface
-  def __init__(self, showerrors=False, showall=False, logfile=None,
+  def __init__(self, log_file=None, console_level="INFO", file_level="INFO",
                format="json", debug=False):
     template = "%(levelname)s | %(message)s"
 
-    self.logger = logging.getLogger('mozmill')
-    formatter = logging.Formatter(template)
-    if logfile:
-      handler = logging.FileHandler(logfile, 'w')
-      self.logger.setLevel(logging.DEBUG)
-    else:
-      handler = logging.StreamHandler()
-      if format == "pprint-color":
-        formatter = ColorFormatter(template)
-    handler.setFormatter(formatter)
-
-    if showerrors:
-      self.logger.setLevel(logging.ERROR)
-    if showall:
-      self.logger.setLevel(logging.DEBUG)
-  
-    self.logger.addHandler(handler)
-
+    levels = {
+      "DEBUG": logging.DEBUG,
+      "INFO": logging.INFO,
+      "WARNING": logging.WARNING,
+      "ERROR": logging.ERROR,
+      "CRITICAL": logging.CRITICAL
+    }
+    
     self.custom_levels = {
      "TEST-START" : 21, # logging.INFO is 20
-     "TEST-PASS": 41, # logging.ERROR is 40
-     "TEST-UNEXPECTED-FAIL": 42,
+     "TEST-PASS": 22,
+     "TEST-UNEXPECTED-FAIL": 42,  # logging.ERROR is 40
     }
     for name in self.custom_levels:
       logging.addLevelName(self.custom_levels[name], name)
+
+    self.logger = logging.getLogger('mozmill')
+    self.logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(template)
+    
+    if console_level:
+      console = logging.StreamHandler()
+      if format == "pprint-color":
+        formatter = ColorFormatter(template)
+      console.setFormatter(formatter)
+      console.setLevel(levels[console_level])
+      self.logger.addHandler(console)
+
+    if log_file:
+      handler = logging.FileHandler(log_file, 'w')
+      handler.setFormatter(formatter)
+      handler.setLevel(levels[file_level])
+      self.logger.addHandler(handler)
+
       
     self.format = format
     self.debug = debug
 
   @classmethod
-  def add_options(cls, parser):
-    parser.add_option("-l", "--logfile", dest="logfile", default=None,
+  def add_options(cls, parser):                      
+    LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "FATAL")
+    LEVEL_STRING = "[" + "|".join(LOG_LEVELS) + "]"
+
+    parser.add_option("-l", "--log-file", dest="log_file", default=None,
                       help="Log all events to file.")
-    parser.add_option("--show-all", dest="showall", default=False,
-                      action="store_true",
-                      help="Show all test output.")
-    parser.add_option("--show-errors", dest="showerrors", default=False, 
-                      action="store_true",
-                      help="Print logger errors to the console.")
+    parser.add_option("--console-level",
+                    action = "store", type = "choice", dest = "console_level",
+                    choices = LOG_LEVELS, metavar = LEVEL_STRING,
+                    help = "level of console logging, defaulting to INFO",
+                    default="INFO")
+    parser.add_option("--file-level", 
+                    action = "store", type = "choice", dest = "file_level",
+                    choices = LOG_LEVELS, metavar = LEVEL_STRING,
+                    help = "level of file logging if --log-file has been specified," + 
+                      " defaulting to INFO",
+                    default = "INFO")
     parser.add_option("--format", dest="format", default="json",
                       metavar="[json|pprint|pprint-color]",
                       help="Format for logging")
@@ -114,9 +131,9 @@ class LoggerListener(object):
       self.logger.log(self.custom_levels["TEST-UNEXPECTED-FAIL"], 
         'Disconnect Error: Application unexpectedly closed')
     
-    print "INFO Passed: %d" % len(results.passes)
-    print "INFO Failed: %d" % len(results.fails)
-    print "INFO Skipped: %d" % len(results.skipped)
+    self.logger.info("Passed: %d" % len(results.passes))
+    self.logger.info("Failed: %d" % len(results.fails))
+    self.logger.info("Skipped: %d" % len(results.skipped))
 
   ### event listeners
 

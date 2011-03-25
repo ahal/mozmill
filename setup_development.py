@@ -35,6 +35,9 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
+
+PACKAGES = ['mozprocess', 'mozprofile', 'mozrunner', 'jsbridge', 'mozmill', 'mutt']
+
 import os
 import subprocess
 import sys

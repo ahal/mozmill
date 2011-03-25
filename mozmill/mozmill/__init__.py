@@ -145,6 +145,7 @@ class MozMill(object):
         # setup event listeners
         self.global_listeners = []
         self.listeners = []
+        self.listener_dict = {} # dict of listeners by event type
         self.add_listener(self.persist_listener, eventType="mozmill.persist")
         self.add_listener(self.endRunner_listener, eventType='mozmill.endRunner')
         self.add_listener(self.startTest_listener, eventType='mozmill.setTest')
@@ -165,8 +166,9 @@ class MozMill(object):
 
     ### methods for event listeners
 
-    def add_listener(self, callback, **kwargs):
-        self.listeners.append((callback, kwargs,))
+    def add_listener(self, callback, eventType):
+        self.listener_dict.setdefault(eventType, []).append(callback)
+        self.listeners.append((callback, {'eventType': eventType}))
 
     def add_global_listener(self, callback):
         self.global_listeners.append(callback)
@@ -191,6 +193,20 @@ class MozMill(object):
         - resetProfile : reset the profile after shutdown
         """
         self.shutdownMode = obj
+
+    def fire_event(self, event, obj):
+        """fire an event from the python side"""
+
+        # namespace the event
+        event = 'mozmill.' + event
+
+        # global listeners
+        for callback in self.global_listeners:
+            callback(event, obj)
+
+        # event listeners
+        for callback in self.listener_dict.get(event, []):
+            callback(obj)
 
     ### methods for startup
 
@@ -261,23 +277,40 @@ class MozMill(object):
         """run test files"""
 
         # start the runner
-        frame = self.start_runner()
+        started = False
         
         # run tests
         while tests:
             test = tests.pop(0)
+            if 'disabled' in test:
+
+                # see frame.js:events.endTest
+                obj = {'filename': test['path'],
+                       'passed': 0,
+                       'failed': 0,
+                       'passes': [],
+                       'fails': [],
+                       'name': os.path.basename(test['path']), # XXX should be consistent with test.__name__ ; see bug 643480
+                       'skipped': True,
+                       'skipped_reason': test['disabled']
+                       }
+                self.fire_event('endTest', obj)
+                continue
             try:
+                if not started:
+                    frame = self.start_runner()
                 self.run_test_file(frame, test['path'])
             except JSBridgeDisconnectError:
-                if self.shutdownMode and tests:
+                if self.shutdownMode:
                     # if the test initiates shutdown and there are other tests
-                    # restart the runner
-                    frame = self.start_runner()
+                    # signal that the runner is stopped
+                    started = False
                 else:
                     raise
 
         # stop the runner
-        self.stop_runner()
+        if started:
+            self.stop_runner()
 
     def run(self, tests):
         """run the tests"""
@@ -429,9 +462,6 @@ class CLI(mozrunner.CLI):
             # collect the tests
             tests = [{'test': os.path.basename(t), 'path': t}
                      for t in collect_tests(test)]
-            if self.options.restart:
-                for t in tests:
-                    t['type'] = 'restart'
             self.manifest.tests.extend(tests)
 
         # list the tests and exit if specified
@@ -456,7 +486,7 @@ class CLI(mozrunner.CLI):
                          help="seconds before harness timeout if no communication is taking place")
         group.add_option("--restart", dest='restart', action='store_true',
                          default=False,
-                         help="operate in restart mode")
+                         help="restart the application and reset the profile between each test file")
         group.add_option("-m", "--manifest", dest='manifests',
                          action='append',
                          metavar='MANIFEST',
@@ -481,6 +511,7 @@ class CLI(mozrunner.CLI):
 
         parser.add_option_group(group)
 
+        # add option for included event handlers
         for name, handler_class in self.handlers.items():
             if hasattr(handler_class, 'add_options'):
                 group = OptionGroup(parser, '%s options' % name,
@@ -519,20 +550,8 @@ class CLI(mozrunner.CLI):
         
     def run(self):
 
-        # groups of tests to run together
-        tests = self.manifest.tests[:]
-        test_groups = [[]] 
-        while tests:
-            test = tests.pop(0)
-            if test.get('type') == 'restart':
-                test_groups.append([test])
-                test_groups.append([]) # make a new group for non-restart tests
-                continue
-            test_groups[-1].append(test)
-        test_groups = [i for i in test_groups if i] # filter out empty groups
-
         # make sure you have tests to run
-        if not test_groups:
+        if not self.manifest.tests:
             self.parser.error("No tests found. Please specify tests with -t or -m")
         
         # create a place to put results
@@ -551,8 +570,12 @@ class CLI(mozrunner.CLI):
         # run the tests
         exception = None # runtime exception
         try:
-            for test_group in test_groups:
-                mozmill.run(test_group)
+            if self.options.restart:
+                for test in self.manifest.tests:
+                    mozmill.run([test])
+                    runner.reset() # reset the profile
+            else:
+                mozmill.run(self.manifest.tests[:])
         except:
             exception_type, exception, tb = sys.exc_info()
 
