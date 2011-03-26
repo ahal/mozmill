@@ -75,8 +75,6 @@ function getScreenCoordinates(node) {
   
   pos.x += rect.width / 2;
   pos.y += rect.height / 2;
-  dump("pos.x: " + pos.x + "\n");
-  dump("pos.y: " + pos.y + "\n");
   return pos;
 }
 
@@ -98,10 +96,12 @@ function sendClick(node, x, y, button) {
   dump(file.path + "\n")
   var lib = ctypes.open(file.path);
 
-  var sendClick = lib.declare("sendClick", ctypes.default_abi, ctypes.int32_t, ctypes.double, 
-                                                                    ctypes.double, ctypes.int32_t);
+  var sendClick = lib.declare("sendClick", ctypes.default_abi, ctypes.int32_t, ctypes.int32_t, 
+                                                                    ctypes.int32_t, ctypes.int32_t);
   node.focus();
   var pos = getScreenCoordinates(node);
-  node = getAccessibleDocument(node);
-  dump(sendClick(pos.x, pos.y, button) + "\n");
+  dump("pos.x: " + pos.x + "\n");
+  dump("pos.y: " + pos.y + "\n");
+  //node = getAccessibleDocument(node);
+  dump(sendClick(Math.round(pos.x), Math.round(pos.y), button) + "\n");
 } 
