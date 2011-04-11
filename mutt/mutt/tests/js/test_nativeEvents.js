@@ -6,6 +6,16 @@ var testNativeEvents = function () {
   controller.open("http://localhost/test.html");
   controller.waitForPageLoad();
 
-  var firefox = new elementslib.ID(controller.tabs.activeTab, "firefox");
+  var firefox = findElement.ID(controller.tabs.activeTab, "firefox");
   controller.click(firefox, undefined, undefined, undefined, true);
+  controller.sleep(1000);
+
+  var edit = findElement.ID(controller.window.document, "edit-menu");
+  controller.click(edit);
+  controller.sleep(1000);
+  controller.click(edit);
+
+  var view = findElement.ID(controller.window.document, "view-menu");
+  controller.click(view);
+  controller.sleep(1000);
 }

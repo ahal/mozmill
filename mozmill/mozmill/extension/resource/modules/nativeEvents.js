@@ -52,56 +52,31 @@ function getFile(chromeURL) {
   return  fileURL.QueryInterface(Components.interfaces.nsIFileURL).file;
 }
 
-function findPos(node){
-  var posX = node.offsetLeft;
-  var posY = node.offsetTop;
-  while(node.offsetParent) {
-    posX = posX + node.offsetParent.offsetLeft;
-    posY = posY + node.offsetParent.offsetTop;
-    node = node.offsetParent;
-  }
-}
-
-function getScreenCoordinates(node) {
+function getCoordinates(node) {
   var rect = node.getBoundingClientRect();
-  dump("rect.left: " + rect.left + "\n");
-  dump("rect.top: " + rect.top + "\n");
   var pos = {'x':rect.left, 'y':rect.top,};
   var win = node.ownerDocument.defaultView;
-  pos.x += win.screenX;
-  pos.y += win.screenY;
-
+  // Offset the chrome
+  // TODO Take the addon and search bars into account
   pos.y += win.outerHeight - win.innerHeight;
-  
   pos.x += rect.width / 2;
   pos.y += rect.height / 2;
   return pos;
 }
 
-function getAccessibleDocument(node) {
-  var retrieval = Components.classes["@mozilla.org/accessibleRetrieval;1"].createInstance(Components.interfaces.nsIAccessibleRetrieval);
-  var accessible = retrieval.getAccessibleFor(node.ownerDocument);
-  return accessible.QueryInterface(Components.interfaces.nsIAccessibleDocument);
-}
-
 function sendClick(node, x, y, button) {
   var win = node.ownerDocument.defaultView;
-  dump("inner: " + win.innerHeight + "\n");
+  /*dump("inner: " + win.innerHeight + "\n");
   dump("outer: " + win.outerHeight + "\n");
   dump("diff: " + (win.outerHeight - win.innerHeight) + "\n");
   dump("screenX: " + win.screenX + "\n");
-  dump("screenY: " + win.screenY + "\n");
+  dump("screenY: " + win.screenY + "\n");*/
 
   var file = getFile("chrome://mozmill/content/libnative_events.so");
-  dump(file.path + "\n")
   var lib = ctypes.open(file.path);
 
   var sendClick = lib.declare("sendClick", ctypes.default_abi, ctypes.int32_t, ctypes.int32_t, 
                                                                     ctypes.int32_t, ctypes.int32_t);
-  node.focus();
-  var pos = getScreenCoordinates(node);
-  dump("pos.x: " + pos.x + "\n");
-  dump("pos.y: " + pos.y + "\n");
-  //node = getAccessibleDocument(node);
+  var pos = getCoordinates(node);
   dump(sendClick(Math.round(pos.x), Math.round(pos.y), button) + "\n");
 } 

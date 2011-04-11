@@ -45,7 +45,7 @@ var EventUtils = {}; Components.utils.import('resource://mozmill/stdlib/EventUti
 var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
 var elementslib = {}; Components.utils.import('resource://mozmill/modules/elementslib.js', elementslib);
 var frame = {}; Components.utils.import('resource://mozmill/modules/frame.js', frame);
-var webdriver = {}; Components.utils.import('resource://mozmill/modules/nativeEvents.js', webdriver);
+var events = {}; Components.utils.import('resource://mozmill/modules/nativeEvents.js', events);
 
 var hwindow = Components.classes["@mozilla.org/appshell/appShellService;1"]
                 .getService(Components.interfaces.nsIAppShellService)
@@ -881,6 +881,7 @@ MozMillController.prototype.mouseEvent = function(aTarget, aOffsetX, aOffsetY, a
 }
 
 MozMillController.prototype.click = function(elem, left, top, expectedEvent) {
+  return events.sendClick(elem.getNode(), 0, 0, 1);
   return elem.click(left, top, expectedEvent);
 }
 
