@@ -36,7 +36,7 @@
 // 
 // ***** END LICENSE BLOCK *****
 
-var EXPORTED_SYMBOLS = ["controller", "events", "utils", "elementslib", "os",
+var EXPORTED_SYMBOLS = ["controller", "utils", "elementslib", "os",
                         "getBrowserController", "newBrowserController", 
                         "getAddonsController", "getPreferencesController", 
                         "newMail3PaneController", "getMail3PaneController", 
@@ -50,11 +50,14 @@ var EXPORTED_SYMBOLS = ["controller", "events", "utils", "elementslib", "os",
                         
 // imports
 var controller = {};  Components.utils.import('resource://mozmill/modules/controller.js', controller);
-var events = {};      Components.utils.import('resource://mozmill/modules/events.js', events);
 var utils = {};       Components.utils.import('resource://mozmill/modules/utils.js', utils);
 var elementslib = {}; Components.utils.import('resource://mozmill/modules/elementslib.js', elementslib);
 var frame = {}; Components.utils.import('resource://mozmill/modules/frame.js', frame);
 var os = {}; Components.utils.import('resource://mozmill/stdlib/os.js', os);
+
+try {
+  Components.utils.import("resource://gre/modules/AddonManager.jsm");
+} catch(e) { /* Firefox 4 only */ }
 
 // platform information
 var platform = os.getPlatform();
@@ -97,7 +100,15 @@ var Application = applicationDictionary[appInfo.ID];
 if (Application == undefined) {
   // Default to Firefox
   var Application = 'Firefox';
-} 
+}
+
+// keep list of installed addons to send to jsbridge for test run report
+var addons = "null"; // this will be JSON parsed
+if(AddonManager) {
+  AddonManager.getAllAddons(function(addonList) {
+    addons = JSON.stringify(addonList);
+  });
+}
 
 function cleanQuit () {
   utils.getMethodInWindows('goQuitApplication')();
