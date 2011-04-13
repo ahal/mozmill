@@ -35,7 +35,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var EXPORTED_SYMBOLS = ["sendClick"];
+var EXPORTED_SYMBOLS = ["sendClick", "keypress"];
 
 // Load JS Ctypes module
 Components.utils.import("resource://gre/modules/ctypes.jsm");
@@ -65,18 +65,33 @@ function getCoordinates(node) {
 }
 
 function sendClick(node, x, y, button) {
-  var win = node.ownerDocument.defaultView;
-  /*dump("inner: " + win.innerHeight + "\n");
-  dump("outer: " + win.outerHeight + "\n");
-  dump("diff: " + (win.outerHeight - win.innerHeight) + "\n");
-  dump("screenX: " + win.screenX + "\n");
-  dump("screenY: " + win.screenY + "\n");*/
+  var file = getFile("chrome://mozmill/content/libnative_events.so");
+  var lib = ctypes.open(file.path);
+  var sendClick = lib.declare("sendClick", ctypes.default_abi, ctypes.int32_t, ctypes.int32_t, 
+                                                                    ctypes.int32_t, ctypes.int32_t);
+  
+  var pos = getCoordinates(node);
+  dump(sendClick(Math.round(pos.x), Math.round(pos.y), button) + "\n");
+}
 
+function keypress(node, val, mod) {
+  mod = mod || {}
+  dump(val+"\n");
   var file = getFile("chrome://mozmill/content/libnative_events.so");
   var lib = ctypes.open(file.path);
 
-  var sendClick = lib.declare("sendClick", ctypes.default_abi, ctypes.int32_t, ctypes.int32_t, 
-                                                                    ctypes.int32_t, ctypes.int32_t);
-  var pos = getCoordinates(node);
-  dump(sendClick(Math.round(pos.x), Math.round(pos.y), button) + "\n");
-} 
+  var mod_st = new ctypes.StructType('mod_st', [{'shift': ctypes.bool},
+                                                {'ctrl': ctypes.bool},
+                                                {'meta': ctypes.bool},
+                                                {'alt': ctypes.bool},
+                                                {'access': ctypes.bool}]);
+  var keypress = lib.declare('keypress', ctypes.default_abi, ctypes.int32_t, ctypes.jschar, mod_st);
+
+  var modifiers = new mod_st(mod['shiftKey'] || false,
+                             mod['ctrlKey'] || false,
+                             mod['metaKey'] || false,
+                             mod['altKey'] || false,
+                             mod['accessKey'] || false);
+  node.focus();
+  dump(keypress(val, modifiers) + "\n");                                          
+}

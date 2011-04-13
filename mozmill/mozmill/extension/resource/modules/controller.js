@@ -869,6 +869,7 @@ MozMillController.prototype.select = function (elem, index, option, value) {
 };
 
 MozMillController.prototype.keypress = function(aTarget, aKey, aModifiers, aExpectedEvent) {
+  return events.keypress(aTarget.getNode(), aKey, aModifiers); 
   return aTarget.keypress(aKey, aModifiers, aExpectedEvent);
 }
 
