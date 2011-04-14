@@ -25,6 +25,8 @@ var testNativeKey = function () {
   controller.waitForPageLoad();
 
   var urlbar = findElement.ID(controller.window.document, "urlbar");
-  controller.keypress(urlbar, "a", {'shiftKey': true});
+  controller.type(urlbar, "asd", {'shiftKey': true});
+  controller.keypress(urlbar, "f");
+  controller.keypress(urlbar, "VK_ENTER");
   controller.sleep(2000);
 }
