@@ -64,9 +64,20 @@ function getCoordinates(node) {
   return pos;
 }
 
+function sendClick(node, x, y, button) {
+  var file = getFile("chrome://mozmill/content/libnative_events.so");
+  var lib = ctypes.open(file.path);
+  var click = lib.declare("click", ctypes.default_abi, ctypes.int32_t, ctypes.int32_t, 
+                                                                    ctypes.int32_t, ctypes.int32_t);
+  
+  var pos = getCoordinates(node);
+  dump(click(Math.round(pos.x), Math.round(pos.y), button) + "\n");
+}
+
 // Some horrible ugly translating function
 // See <gdk/gdkkeysyms.h> for the values to translate to
 function translateKeyCode(keycode) {
+  // TODO Translate other keys
   switch(keycode) {
     case "VK_ENTER":
       return 0xff0d; // translate to 32-bit int
@@ -74,28 +85,17 @@ function translateKeyCode(keycode) {
   }
 }
 
-function sendClick(node, x, y, button) {
-  var file = getFile("chrome://mozmill/content/libnative_events.so");
-  var lib = ctypes.open(file.path);
-  var sendClick = lib.declare("sendClick", ctypes.default_abi, ctypes.int32_t, ctypes.int32_t, 
-                                                                    ctypes.int32_t, ctypes.int32_t);
-  
-  var pos = getCoordinates(node);
-  dump(sendClick(Math.round(pos.x), Math.round(pos.y), button) + "\n");
-}
-
 function keypress(node, val, mod) {
   mod = mod || {}
-  dump(val+"\n");
   var file = getFile("chrome://mozmill/content/libnative_events.so");
   var lib = ctypes.open(file.path);
   
-  var mod_st = new ctypes.StructType('mod_st', [{'shift': ctypes.bool},
-                                                {'ctrl': ctypes.bool},
-                                                {'meta': ctypes.bool},
-                                                {'alt': ctypes.bool},
-                                                {'access': ctypes.bool}]);
-  var keypress = lib.declare('keypress', ctypes.default_abi, ctypes.int32_t, ctypes.uint32_t, mod_st);
+  var mod_st = new ctypes.StructType('mod_st', [{'shift': ctypes.int},
+                                                {'ctrl': ctypes.int},
+                                                {'meta': ctypes.int},
+                                                {'alt': ctypes.int},
+                                                {'access': ctypes.int}]);
+  var keypress = lib.declare('keypress', ctypes.default_abi, ctypes.int32_t, ctypes.uint32_t, mod_st.ptr);
     
   if (val.length == 1) {
     val = val.charCodeAt(0);
@@ -108,22 +108,20 @@ function keypress(node, val, mod) {
                              mod['altKey'] || false,
                              mod['accessKey'] || false);
   node.focus();
-  dump(val+"\n");
-  dump(keypress(val, modifiers) + "\n");                                          
+  dump(keypress(val, modifiers.address()) + "\n");                                          
 }
 
 function sendKeys(node, val, mod) {
   mod = mod || {}
-  dump(val+"\n");
   var file = getFile("chrome://mozmill/content/libnative_events.so");
   var lib = ctypes.open(file.path);
   
-  var mod_st = new ctypes.StructType('mod_st', [{'shift': ctypes.bool},
-                                                {'ctrl': ctypes.bool},
-                                                {'meta': ctypes.bool},
-                                                {'alt': ctypes.bool},
-                                                {'access': ctypes.bool}]);
-  var sendKeys = lib.declare('sendKeys', ctypes.default_abi, ctypes.int32_t, ctypes.char.array(), mod_st);
+  var mod_st = new ctypes.StructType('mod_st', [{'shift': ctypes.int},
+                                                {'ctrl': ctypes.int},
+                                                {'meta': ctypes.int},
+                                                {'alt': ctypes.int},
+                                                {'access': ctypes.int}]);
+  var sendKeys = lib.declare('sendKeys', ctypes.default_abi, ctypes.int32_t, ctypes.char.array(), mod_st.ptr);
  
   var str = ctypes.char.array()(val);
   var modifiers = new mod_st(mod['shiftKey'] || false,
@@ -132,5 +130,5 @@ function sendKeys(node, val, mod) {
                              mod['altKey'] || false,
                              mod['accessKey'] || false);
   node.focus();
-  dump(sendKeys(str, modifiers) + "\n");                                          
+  dump(sendKeys(str, modifiers.address()) + "\n");
 }
