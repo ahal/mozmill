@@ -51,8 +51,8 @@ var EXPORTED_SYMBOLS = ["controller", "utils", "elementslib", "os",
 var controller = {};  Components.utils.import('resource://mozmill/modules/controller.js', controller);
 var utils = {};       Components.utils.import('resource://mozmill/modules/utils.js', utils);
 var elementslib = {}; Components.utils.import('resource://mozmill/modules/elementslib.js', elementslib);
-var frame = {}; Components.utils.import('resource://mozmill/modules/frame.js', frame);
 var os = {}; Components.utils.import('resource://mozmill/stdlib/os.js', os);
+Components.utils.import('resource://mozmill/modules/msgmanager.js');
 
 try {
   Components.utils.import("resource://gre/modules/AddonManager.jsm");
@@ -237,13 +237,12 @@ function getAddrbkController () {
 
 function firePythonCallback (filename, method, args, kwargs) {
   obj = {'filename': filename, 'method': method};
-  obj['test'] = frame.events.currentModule.__file__;
   obj['args'] = args || [];
   obj['kwargs'] = kwargs || {};
-  frame.events.fireEvent("firePythonCallback", obj);
+  msg.sendMessage("firePythonCallback", obj);
 }
 
-function timer (name) {
+/*function timer (name) {
   this.name = name;
   this.timers = {};
   frame.timers.push(this);
@@ -260,4 +259,4 @@ timer.prototype.stop = function (name) {
 timer.prototype.end = function () {
   frame.events.fireEvent("timer", this);
   frame.timers.remove(this);
-}
+}*/

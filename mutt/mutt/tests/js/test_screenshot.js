@@ -11,7 +11,7 @@ var testContentScreenshot = function() {
 
   var mngb = findElement.ID(controller.tabs.activeTab, "mngb");
   var gb_1 = findElement.ID(controller.tabs.activeTab, "gb_1");
-  var fctr = findElement.ID(controller.tabs.activeTab, "fctr");
+  var fctr = findElement.ID(controller.tabs.activeTab, "lga");
   var about = findElement.Link(controller.tabs.activeTab, "About Google");
 
   controller.screenShot(controller.window, "screen1", true, [logo, searchForm]);

@@ -45,6 +45,7 @@ var strings = {}; Components.utils.import('resource://mozmill/stdlib/strings.js'
 var arrays = {};  Components.utils.import('resource://mozmill/stdlib/arrays.js', arrays);
 var withs = {};   Components.utils.import('resource://mozmill/stdlib/withs.js', withs);
 var utils = {};   Components.utils.import('resource://mozmill/modules/utils.js', utils);
+var messaging = {}; Components.utils.import('resource://mozmill/modules/msgmanager.js', messaging);
 var securableModule = {};  Components.utils.import('resource://mozmill/stdlib/securable-module.js', securableModule);
 
 var aConsoleService = Components.classes["@mozilla.org/consoleservice;1"].
@@ -350,6 +351,48 @@ events.persist = function() {
 var log = function (obj) {
   events.fireEvent('log', obj);
 }
+
+function MozmillMsgListener() {}
+MozmillMsgListener.prototype.update = function(msgType, obj) {
+  switch(msgType) {
+    case 'pass':
+      events.pass(obj);
+      break;
+    case 'fail':
+      events.fail(obj);
+      break;
+    case 'log':
+      log(obg);
+      break;
+    case 'screenShot':
+      // Find the name of the test function
+      for (var attr in events.currentModule) {
+        if (events.currentModule[attr] == events.currentTest) {
+          var testName = attr;
+          break;
+        }
+      }
+      obj['test_file'] = events.currentModule.__file__;
+      obj['test_name'] = testName;
+      events.fireEvent(msgType, obj);
+      break;
+    case 'userShutdown':
+      events.toggleUserShutdown(obj);
+      events.fireEvent(msgType, obj);
+      break;
+    case 'endTest':
+      events.endTest(events.currentTest);
+      break;
+    case 'persist':
+      events.persist();
+      break;
+    case 'firePythonCallback':
+      obj['test'] = events.currentModule.__file__;
+      events.fireEvent(msgType, obj);
+      break;
+  }
+}
+messaging.msg.addListener(new MozmillMsgListener());
 
 try {
   var jsbridge = {}; Components.utils.import('resource://jsbridge/modules/events.js', jsbridge);
