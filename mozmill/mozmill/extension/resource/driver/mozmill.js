@@ -52,11 +52,11 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 // imports
-var controller = {};  Components.utils.import('resource://mozmill/modules/controller.js', controller);
-var utils = {};       Components.utils.import('resource://mozmill/modules/utils.js', utils);
-var elementslib = {}; Components.utils.import('resource://mozmill/modules/elementslib.js', elementslib);
-var findElement = {}; Components.utils.import('resource://mozmill/modules/mozelement.js', findElement);
-var msg = {}; Components.utils.import('resource://mozmill/modules/msgbroker.js', msg);
+var controller = {};  Components.utils.import('resource://mozmill/driver/controller.js', controller);
+var utils = {};       Components.utils.import('resource://mozmill/driver/utils.js', utils);
+var elementslib = {}; Components.utils.import('resource://mozmill/driver/elementslib.js', elementslib);
+var findElement = {}; Components.utils.import('resource://mozmill/driver/mozelement.js', findElement);
+var msg = {}; Components.utils.import('resource://mozmill/driver/msgbroker.js', msg);
 var os = {}; Components.utils.import('resource://mozmill/stdlib/os.js', os);
 
 try {

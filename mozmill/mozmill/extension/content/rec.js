@@ -37,11 +37,10 @@
 // ***** END LICENSE BLOCK *****
 
 var inspection = {}; Components.utils.import('resource://mozmill/modules/inspection.js', inspection);
-var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
 var objects = {}; Components.utils.import('resource://mozmill/stdlib/objects.js', objects);
 var arrays = {}; Components.utils.import('resource://mozmill/stdlib/arrays.js', arrays);
-// var logging = {}; Components.utils.import('resource://mozmill/stdlib/logging.js', logging);
-var controller = {};  Components.utils.import('resource://mozmill/modules/controller.js', controller);
+var controller = {};  Components.utils.import('resource://mozmill/driver/controller.js', controller);
+var utils = {}; Components.utils.import('resource://mozmill/driver/utils.js', utils);
 
 // var recorderLogger = logging.getLogger('recorderLogger');
 

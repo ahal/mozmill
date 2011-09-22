@@ -1,4 +1,4 @@
-var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
+var utils = {}; Components.utils.import('resource://mozmill/driver/utils.js', utils);
 
 
 

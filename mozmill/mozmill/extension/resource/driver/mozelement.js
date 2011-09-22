@@ -42,9 +42,9 @@ var EXPORTED_SYMBOLS = ["Elem", "Selector", "ID", "Link", "XPath", "Name", "Look
                        ];
 
 var EventUtils = {}; Components.utils.import('resource://mozmill/stdlib/EventUtils.js', EventUtils);
-var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
-var elementslib = {}; Components.utils.import('resource://mozmill/modules/elementslib.js', elementslib);
-var msg = {}; Components.utils.import('resource://mozmill/modules/msgbroker.js', msg);
+var utils = {}; Components.utils.import('resource://mozmill/driver/utils.js', utils);
+var elementslib = {}; Components.utils.import('resource://mozmill/driver/elementslib.js', elementslib);
+var msg = {}; Components.utils.import('resource://mozmill/driver/msgbroker.js', msg);
 
 // A list of all the subclasses available.  Shared modules can push their own subclasses onto this list
 var subclasses = [MozMillCheckBox, MozMillRadio, MozMillDropList, MozMillTextBox];
