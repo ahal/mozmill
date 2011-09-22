@@ -45,7 +45,7 @@ var strings = {}; Components.utils.import('resource://mozmill/stdlib/strings.js'
 var arrays = {};  Components.utils.import('resource://mozmill/stdlib/arrays.js', arrays);
 var withs = {};   Components.utils.import('resource://mozmill/stdlib/withs.js', withs);
 var utils = {};   Components.utils.import('resource://mozmill/modules/utils.js', utils);
-var messaging = {}; Components.utils.import('resource://mozmill/modules/msgmanager.js', messaging);
+var messaging = {}; Components.utils.import('resource://mozmill/modules/msgbroker.js', messaging);
 var securableModule = {};  Components.utils.import('resource://mozmill/stdlib/securable-module.js', securableModule);
 
 var aConsoleService = Components.classes["@mozilla.org/consoleservice;1"].
@@ -392,7 +392,7 @@ MozmillMsgListener.prototype.update = function(msgType, obj) {
       break;
   }
 }
-messaging.msg.addListener(new MozmillMsgListener());
+messaging.broker.addListener(new MozmillMsgListener());
 
 try {
   var jsbridge = {}; Components.utils.import('resource://jsbridge/modules/events.js', jsbridge);

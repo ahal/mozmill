@@ -37,7 +37,7 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-Components.utils.import('resource://mozmill/modules/msgmanager.js');
+var msg = {}; Components.utils.import('resource://mozmill/modules/msgbroker.js', msg);
 
 /**
 * Console listener which listens for error messages in the console and forwards
@@ -51,7 +51,7 @@ ConsoleListener.prototype = {
    var message = aMessage.message;
    var re = /^\[.*Error:.*(chrome|resource):\/\/.*/i;
    if (message.match(re)) {
-     msg.fail(aMessage);
+     msg.broker.fail(aMessage);
    }
  },
  QueryInterface: function (iid) {
